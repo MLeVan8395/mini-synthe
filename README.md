@@ -18,21 +18,22 @@ Il fonctionne ensuite **hors ligne** et se met à jour tout seul à chaque ouver
 
 ## Le parcours du son
 
-**Oscillateur + bruit → filtre → ampli → saturation → chorus → delay → sortie**
+**Oscillateur (ou tirettes) + bruit → filtre → ampli → saturation → phaser → flanger → chorus → trémolo → delay → sortie**
 
 | Module | Réglages | Ce qu'on observe |
 |---|---|---|
 | **Oscillateur** | Forme d'onde (sinus, triangle, dent de scie, carré), niveau, accord fin | Les harmoniques de chaque forme d'onde sur le spectre |
+| **Tirettes harmoniques** | 9 tirettes d'orgue (16' à 1'), de 0 à 8, et des registrations toutes prêtes | La synthèse additive : chaque tirette fait monter une harmonique sur le spectre |
 | **Générateur de bruit** | Bruit blanc ou rose, niveau | Un son sans hauteur, qui contient toutes les fréquences |
 | **Filtre** | Passe-bas, passe-haut, passe-bande ; fréquence de coupure, résonance | La courbe du filtre, qui bouge en direct |
 | **Enveloppe du filtre** | Quantité (en octaves, positive ou négative) et ADSR | La coupure qui s'ouvre et se referme à chaque note |
 | **Ampli et enveloppe** | ADSR du volume | Un point qui parcourt la courbe pendant la note |
-| **Effets** | Saturation (gain, dosage), chorus stéréo (vitesse, profondeur, dosage), delay (temps, réinjection, dosage) | La forme d'onde qui s'écrase avec la saturation, l'écho qui se répète |
+| **Effets** | Vibrato (sur l'oscillateur), saturation (gain, dosage), phaser et flanger (vitesse, profondeur, réinjection), trémolo (vitesse, profondeur), chorus stéréo (vitesse, profondeur, dosage), delay (temps, réinjection, dosage) | La forme d'onde qui s'écrase avec la saturation, l'écho qui se répète |
 | **Écran** | Forme d'onde (zoom automatique) ou spectre | La note jouée en solfège et sa fréquence (ex. La3 · 440 Hz) |
 
-Chaque module a une explication **Comprendre** rédigée simplement.
+Chaque module a une explication **Comprendre** rédigée simplement. Chaque section, et chaque effet, est un **volet** qu'on ouvre ou ferme en touchant son titre.
 
-**9 sons de départ**, chacun avec une consigne d'écoute : son pur, orgue, basse synthé, son pincé, cuivre, nappe (pad), lead saturé, charleston (bruit seul), vent.
+**13 sons de départ**, chacun avec une consigne d'écoute : son pur, orgue, orgue à tirettes, basse synthé, son pincé, cuivre, nappe (pad), nappe phaser, lead flanger, trémolo, lead saturé, charleston (bruit seul), vent.
 
 **Jouer** : clavier à l'écran (au doigt ou à la souris, on peut glisser d'une touche à l'autre), ou clavier d'ordinateur AZERTY (Q S D F G H J K pour les touches blanches, Z E T Y U pour les noires, W / X pour changer d'octave). Le bouton **Tenir les notes** garde le son pendant qu'on manipule les réglages.
 

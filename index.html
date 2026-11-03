@@ -115,6 +115,33 @@ details.help b{color:var(--text)}
 .key.down{background:var(--osc)!important;color:#121419}
 .key .ck{font-family:var(--mono);font-size:10px;opacity:.55;margin-bottom:2px}
 .key .nm{font-weight:600}
+/* volets */
+.foldable{cursor:pointer;user-select:none}
+.foldable::after{content:'▾';margin-left:auto;color:var(--muted);font-size:14px;transition:transform .2s}
+.card h2.foldable{width:100%}
+.folded .foldable::after{transform:rotate(-90deg)}
+.card.folded > :not(.fold-keep){display:none}
+.card.folded{padding-bottom:12px}
+.fx-head h3.foldable{display:flex;align-items:center;gap:8px;flex:1;padding:4px 10px 4px 0}
+.fx.folded > :not(.fx-head){display:none}
+.fx.folded{padding-bottom:10px}
+/* tirettes */
+.drawnote{font-size:13px;color:var(--osc);margin:0 0 6px}
+.drawnote[hidden]{display:none}
+.drawbars{user-select:none;-webkit-user-select:none;display:grid;grid-template-columns:repeat(9,1fr);gap:5px;background:#0d0f13;border:1px solid var(--line);border-radius:10px;padding:8px 6px 6px}
+.dbar{display:flex;flex-direction:column;align-items:center;touch-action:none;cursor:ns-resize;outline:none}
+.dbar .ft{font-family:var(--mono);font-size:11px;color:var(--text);margin-bottom:4px}
+.dbar .track{position:relative;width:100%;max-width:34px;height:170px;border-radius:4px;background:repeating-linear-gradient(180deg,#1b1e26 0 18px,#262a34 18px 19px)}
+.dbar .rod{position:absolute;left:18%;right:18%;top:0;background:linear-gradient(90deg,#666,#999,#666)}
+.dbar .cap{position:absolute;left:0;right:0;height:30px;border-radius:4px 4px 6px 6px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;font-family:var(--mono);font-weight:600;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,.5)}
+.dbar.brown .cap{background:linear-gradient(#a0683a,#6e4321);color:#f4e9dc}
+.dbar.white .cap{background:linear-gradient(#f4f1ea,#cfc9bc);color:#222}
+.dbar.black .cap{background:linear-gradient(#3a3e48,#121419);color:#eee;border:1px solid #444}
+.dbar .nt{font-size:10px;color:var(--muted);margin-top:4px;text-align:center;line-height:1.2}
+.dbar:focus-visible .track{outline:2px solid var(--osc);outline-offset:2px}
+.drawbars.inactive{opacity:.55}
+.regline{display:flex;align-items:center;gap:8px;margin-top:10px}
+.regcode{font-family:var(--mono);font-size:16px;color:var(--osc);letter-spacing:.05em}
 footer{max-width:1240px;margin:0 auto;padding:0 18px;color:var(--muted);font-size:12px}
 .startnote{display:none;background:var(--osc);color:#121419;border-radius:8px;padding:6px 10px;font-weight:600}
 .startnote.show{display:inline-block}
@@ -129,7 +156,7 @@ footer{max-width:1240px;margin:0 auto;padding:0 18px;color:var(--muted);font-siz
 <main>
   <nav class="flow" aria-label="Parcours du signal">
     <div class="src">
-      <button class="chip" style="--c:var(--osc)" data-go="m-osc" id="ch-osc">Oscillateur</button>
+      <button class="chip" style="--c:var(--osc)" data-go="m-osc" id="ch-osc">Oscillateur<small id="ch-osc-s">+ vibrato</small></button>
       <button class="chip" style="--c:var(--noise)" data-go="m-osc" id="ch-noise">Bruit</button>
     </div>
     <span class="arrow">→</span>
@@ -137,11 +164,17 @@ footer{max-width:1240px;margin:0 auto;padding:0 18px;color:var(--muted);font-siz
     <span class="arrow">→</span>
     <button class="chip" style="--c:var(--amp)" data-go="m-amp">Ampli<small>+ enveloppe</small></button>
     <span class="arrow">→</span>
-    <button class="chip" style="--c:var(--fx)" data-go="m-fx" id="ch-sat">Saturation</button>
+    <button class="chip" style="--c:var(--fx)" data-go="fx-sat" id="ch-sat">Saturation</button>
     <span class="arrow">→</span>
-    <button class="chip" style="--c:var(--fx)" data-go="m-fx" id="ch-cho">Chorus</button>
+    <button class="chip" style="--c:var(--fx)" data-go="fx-pha" id="ch-pha">Phaser</button>
     <span class="arrow">→</span>
-    <button class="chip" style="--c:var(--fx)" data-go="m-fx" id="ch-del">Delay</button>
+    <button class="chip" style="--c:var(--fx)" data-go="fx-fla" id="ch-fla">Flanger</button>
+    <span class="arrow">→</span>
+    <button class="chip" style="--c:var(--fx)" data-go="fx-cho" id="ch-cho">Chorus</button>
+    <span class="arrow">→</span>
+    <button class="chip" style="--c:var(--fx)" data-go="fx-tre" id="ch-tre">Trémolo</button>
+    <span class="arrow">→</span>
+    <button class="chip" style="--c:var(--fx)" data-go="fx-del" id="ch-del">Delay</button>
     <span class="arrow">→</span>
     <button class="chip" style="--c:var(--out)" data-go="m-out">Sortie</button>
   </nav>
@@ -184,6 +217,7 @@ footer{max-width:1240px;margin:0 auto;padding:0 18px;color:var(--muted);font-siz
         <button data-val="triangle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12 L7 4 L17 20 L22 12"/></svg>Triangle</button>
         <button data-val="sawtooth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 18 L12 6 L12 18 L22 6 L22 18"/></svg>Dent de scie</button>
         <button data-val="square"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 18 L2 6 L12 6 L12 18 L22 18 L22 6"/></svg>Carré</button>
+        <button data-val="drawbars"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="3" width="3" height="14" rx="1"/><rect x="7" y="3" width="3" height="9" rx="1"/><rect x="12" y="3" width="3" height="18" rx="1"/><rect x="17" y="3" width="3" height="6" rx="1"/></svg>Tirettes</button>
       </div>
       <div class="slider" data-path="oscLevel" data-label="Niveau de l'oscillateur" data-min="0" data-max="1" data-fmt="pct"></div>
       <div class="slider" data-path="detune" data-label="Accord fin" data-min="-100" data-max="100" data-step="1" data-fmt="cents"></div>
@@ -205,6 +239,22 @@ footer{max-width:1240px;margin:0 auto;padding:0 18px;color:var(--muted);font-siz
           <li><b>Carré</b> : creux, seulement les harmoniques impaires (clarinette, sons de jeux vidéo 8 bits).</li>
         </ul>
         <p>Le <b>bruit</b> ne fait pas de note : il contient toutes les fréquences au hasard. <b>Blanc</b> = « chhh » brillant ; <b>rose</b> = plus de graves, plus doux (vent, mer). On s'en sert pour les percussions et les souffles. Mélange-le un peu à l'oscillateur pour un son « soufflé ».</p>
+      </details>
+    </section>
+
+    <!-- TIRETTES -->
+    <section class="card" id="m-draw" style="--c:var(--osc)">
+      <h2><span class="num">1b</span> Tirettes harmoniques</h2>
+      <p class="sub">Comme sur un orgue : chaque tirette ajoute une harmonique. Tire vers le bas (0 = rentrée, 8 = à fond).</p>
+      <p class="drawnote" id="drawnote">Touche une tirette pour passer l'oscillateur en mode « Tirettes ».</p>
+      <div class="drawbars" id="drawbars"></div>
+      <div class="regline"><span class="lbl" style="margin:0">Registration :</span> <b class="regcode" id="regcode"></b></div>
+      <div class="pbtns" id="regs" style="margin-top:6px"></div>
+      <details class="help"><summary>Comprendre</summary>
+        <p>Un son de hauteur précise est fait d'une <b>fondamentale</b> (la note jouée) et d'<b>harmoniques</b>, des fréquences multiples de la fondamentale (×2, ×3, ×4…). Leur dosage fait le timbre.</p>
+        <p>L'orgue à tirettes (Hammond) laisse choisir ce dosage à la main : on <b>additionne</b> des sinus. C'est la <b>synthèse additive</b>, le contraire du filtre, qui <b>retire</b> des harmoniques (synthèse soustractive).</p>
+        <p>Les chiffres en <b>pieds</b> viennent des tuyaux d'orgue : un tuyau de 8 pieds (8') sonne la note jouée, 4' une octave au-dessus, 16' une octave en dessous. Les tirettes <b>blanches</b> donnent des octaves, les <b>noires</b> des quintes et une tierce, les <b>marron</b> les graves. Sous chaque tirette : la note obtenue si tu joues un Do.</p>
+        <p>Passe l'écran sur <b>Spectre</b> : chaque tirette fait monter un pic.</p>
       </details>
     </section>
 
@@ -267,14 +317,40 @@ footer{max-width:1240px;margin:0 auto;padding:0 18px;color:var(--muted);font-siz
     <!-- EFFETS -->
     <section class="card wide" id="m-fx" style="--c:var(--fx)">
       <h2><span class="num">4</span> Effets</h2>
-      <p class="sub">Ils transforment le son déjà fabriqué, dans cet ordre : saturation → chorus → delay.</p>
+      <p class="sub">Le vibrato agit sur l'oscillateur ; les autres transforment le son déjà fabriqué, dans cet ordre : saturation → phaser → flanger → chorus → trémolo → delay. Touche un nom pour ouvrir ou fermer son volet.</p>
       <div class="fxgrid">
+        <div class="fx" id="fx-vib">
+          <div class="fx-head"><h3>Vibrato</h3><button class="toggle" data-path="vib.on" aria-label="Activer le vibrato"></button></div>
+          <div class="slider" data-path="vib.rate" data-label="Vitesse" data-min="0.5" data-max="12" data-scale="log" data-fmt="lfo"></div>
+          <div class="slider" data-path="vib.depth" data-label="Profondeur" data-min="0" data-max="100" data-step="1" data-fmt="cents"></div>
+          <details class="help"><summary>Comprendre</summary>
+            <p>La <b>hauteur</b> de la note monte et descend légèrement, comme chez un chanteur ou un violoniste. C'est l'oscillateur lui-même qui est modulé, par un second oscillateur très lent qu'on n'entend pas : un <b>LFO</b> (oscillateur basse fréquence). La vitesse dit combien d'ondulations par seconde, la profondeur de combien la note bouge (100 cents = un demi-ton).</p>
+          </details>
+        </div>
         <div class="fx" id="fx-sat">
           <div class="fx-head"><h3>Saturation</h3><button class="toggle" data-path="sat.on" aria-label="Activer la saturation"></button></div>
           <div class="slider" data-path="sat.drive" data-label="Gain (drive)" data-min="0" data-max="1" data-fmt="pct"></div>
           <div class="slider" data-path="sat.mix" data-label="Dosage" data-min="0" data-max="1" data-fmt="pct"></div>
           <details class="help"><summary>Comprendre</summary>
             <p>On pousse le son trop fort et on <b>arrondit le haut des vagues</b>, comme un ampli de guitare à fond. Cela ajoute des harmoniques : sur l'écran, un sinus devient presque carré et le spectre se remplit. Essaie avec le sinus !</p>
+          </details>
+        </div>
+        <div class="fx" id="fx-pha">
+          <div class="fx-head"><h3>Phaser</h3><button class="toggle" data-path="phaser.on" aria-label="Activer le phaser"></button></div>
+          <div class="slider" data-path="phaser.rate" data-label="Vitesse" data-min="0.05" data-max="6" data-scale="log" data-fmt="lfo"></div>
+          <div class="slider" data-path="phaser.depth" data-label="Profondeur" data-min="0" data-max="1" data-fmt="pct"></div>
+          <div class="slider" data-path="phaser.fb" data-label="Réinjection" data-min="0" data-max="1" data-fmt="pct"></div>
+          <details class="help"><summary>Comprendre</summary>
+            <p>Le son traverse une série de filtres spéciaux qui le <b>décalent</b> légèrement (déphasage) selon la fréquence. Mélangé à l'original, il se <b>creuse</b> à quelques endroits du spectre, et un LFO fait voyager ces creux lentement : effet tournoyant, « vvouuu », très années 70. Sur le spectre, regarde les creux qui se promènent.</p>
+          </details>
+        </div>
+        <div class="fx" id="fx-fla">
+          <div class="fx-head"><h3>Flanger</h3><button class="toggle" data-path="flanger.on" aria-label="Activer le flanger"></button></div>
+          <div class="slider" data-path="flanger.rate" data-label="Vitesse" data-min="0.05" data-max="5" data-scale="log" data-fmt="lfo"></div>
+          <div class="slider" data-path="flanger.depth" data-label="Profondeur" data-min="0" data-max="1" data-fmt="pct"></div>
+          <div class="slider" data-path="flanger.fb" data-label="Réinjection" data-min="0" data-max="1" data-fmt="pct"></div>
+          <details class="help"><summary>Comprendre</summary>
+            <p>Comme le chorus, mais avec un retard <b>très court</b> (quelques millisecondes) qu'on <b>réinjecte</b>. Les creux du spectre forment un peigne régulier qui balaie de haut en bas : l'effet « avion à réaction ». À l'origine, on freinait du doigt le bord (en anglais <i>flange</i>) d'une des deux bandes magnétiques qui lisaient le même son.</p>
           </details>
         </div>
         <div class="fx" id="fx-cho">
@@ -284,6 +360,14 @@ footer{max-width:1240px;margin:0 auto;padding:0 18px;color:var(--muted);font-siz
           <div class="slider" data-path="chorus.mix" data-label="Dosage" data-min="0" data-max="1" data-fmt="pct"></div>
           <details class="help"><summary>Comprendre</summary>
             <p>Le son est copié, retardé de quelques millisecondes, et ce retard <b>ondule</b> sans arrêt. La copie est donc légèrement désaccordée par moments. Mélangée à l'original (une copie à gauche, une à droite), elle donne l'impression de <b>plusieurs instruments qui jouent ensemble</b> : le son s'élargit. Écoute au casque.</p>
+          </details>
+        </div>
+        <div class="fx" id="fx-tre">
+          <div class="fx-head"><h3>Trémolo</h3><button class="toggle" data-path="trem.on" aria-label="Activer le trémolo"></button></div>
+          <div class="slider" data-path="trem.rate" data-label="Vitesse" data-min="0.5" data-max="15" data-scale="log" data-fmt="lfo"></div>
+          <div class="slider" data-path="trem.depth" data-label="Profondeur" data-min="0" data-max="1" data-fmt="pct"></div>
+          <details class="help"><summary>Comprendre</summary>
+            <p>Le <b>volume</b> monte et descend régulièrement : le son palpite, comme sur un vieil ampli de guitare. À ne pas confondre : le <b>vibrato</b> fait bouger la <b>hauteur</b>, le <b>trémolo</b> le <b>volume</b>. (Sur certaines guitares, le levier appelé « tremolo » fait en réalité du vibrato !) Regarde la forme d'onde grandir et rapetisser.</p>
           </details>
         </div>
         <div class="fx" id="fx-del">
@@ -321,6 +405,11 @@ const DEFAULT = {
   sat:{on:false, drive:0.4, mix:0.8},
   chorus:{on:false, rate:0.6, depth:0.5, mix:0.5},
   delay:{on:false, time:0.35, fb:0.35, mix:0.3},
+  draw:[8,8,8,0,0,0,0,0,0],
+  vib:{on:false, rate:5.5, depth:30},
+  phaser:{on:false, rate:0.4, depth:0.7, fb:0.5},
+  flanger:{on:false, rate:0.25, depth:0.6, fb:0.6},
+  trem:{on:false, rate:5, depth:0.6},
   master:0.7,
   ui:{scope:'wave'}
 };
@@ -332,6 +421,8 @@ const PRESETS = [
    p:{wave:'sine', filt:{type:'lowpass',cutoff:18000,res:0,amount:0}, amp:{a:0.01,d:0.1,s:1,r:0.15}}},
   {name:'Orgue', desc:'<b>Carré, enveloppe « interrupteur »</b> : le son démarre net, reste au même volume et s\'arrête net. Rien ne bouge dans le temps.',
    p:{wave:'square', filt:{cutoff:3500,res:0,amount:0}, amp:{a:0.005,d:0.05,s:1,r:0.05}, chorus:{on:true,rate:5,depth:0.25,mix:0.4}}},
+  {name:'Orgue à tirettes', desc:'<b>Tirettes 88 8000 000 + vibrato + chorus rapide</b> : le son d\'orgue jazz. Ouvre le volet « Tirettes » et pousse-les une par une en regardant le spectre.',
+   p:{wave:'drawbars', draw:[8,8,8,0,0,0,0,0,0], filt:{cutoff:18000,res:0,amount:0}, amp:{a:0.005,d:0.05,s:1,r:0.06}, vib:{on:true,rate:6.5,depth:12}, chorus:{on:true,rate:5.5,depth:0.25,mix:0.4}}},
   {name:'Basse synthé', desc:'<b>Dent de scie + filtre résonant + enveloppe de filtre rapide</b> : le filtre s\'ouvre d\'un coup puis se referme. Joue dans le grave (◀ Oct.).',
    p:{wave:'sawtooth', filt:{cutoff:180,res:0.55,amount:3.6,a:0.003,d:0.22,s:0.1,r:0.15}, amp:{a:0.003,d:0.4,s:0.8,r:0.1}}},
   {name:'Son pincé', desc:'<b>Maintien à 0</b> : le son meurt tout seul même si tu gardes la touche, comme une corde pincée. Le delay ajoute de l\'espace.',
@@ -340,6 +431,12 @@ const PRESETS = [
    p:{wave:'sawtooth', filt:{cutoff:450,res:0.1,amount:2.6,a:0.09,d:0.5,s:0.55,r:0.2}, amp:{a:0.04,d:0.3,s:0.9,r:0.2}, chorus:{on:true,rate:0.5,depth:0.3,mix:0.3}}},
   {name:'Nappe (pad)', desc:'<b>Attaque et relâchement longs</b>, chorus et delay : un son qui arrive doucement et s\'efface lentement. Active « Tenir les notes » et pose un accord.',
    p:{wave:'sawtooth', detune:-6, filt:{cutoff:700,res:0.1,amount:1.8,a:1.6,d:2,s:0.5,r:2.5}, amp:{a:1.2,d:1,s:0.85,r:2.8}, chorus:{on:true,rate:0.35,depth:0.8,mix:0.6}, delay:{on:true,time:0.45,fb:0.4,mix:0.25}}},
+  {name:'Nappe phaser', desc:'<b>Nappe + phaser lent</b> : le son « tournoie ». Sur le spectre, regarde les creux qui se promènent.',
+   p:{wave:'sawtooth', filt:{cutoff:1400,res:0.1,amount:1,a:0.8,d:1.5,s:0.6,r:2}, amp:{a:0.6,d:1,s:0.85,r:2}, phaser:{on:true,rate:0.25,depth:0.8,fb:0.6}, delay:{on:true,time:0.4,fb:0.35,mix:0.2}}},
+  {name:'Lead flanger', desc:'<b>Dent de scie + flanger</b> : l\'effet « avion à réaction ». Monte la réinjection pour l\'accentuer.',
+   p:{wave:'sawtooth', filt:{cutoff:2500,res:0.2,amount:1,a:0.01,d:0.3,s:0.7,r:0.3}, amp:{a:0.01,d:0.2,s:0.9,r:0.3}, flanger:{on:true,rate:0.2,depth:0.7,fb:0.75}}},
+  {name:'Trémolo', desc:'<b>Triangle + trémolo</b> : le volume palpite, comme sur un vieil ampli de guitare. Compare avec le vibrato, qui fait bouger la hauteur.',
+   p:{wave:'triangle', filt:{cutoff:3000,res:0,amount:0.5}, amp:{a:0.01,d:0.3,s:0.8,r:0.5}, trem:{on:true,rate:6,depth:0.8}, delay:{on:true,time:0.3,fb:0.25,mix:0.2}}},
   {name:'Lead saturé', desc:'<b>Carré + saturation + delay</b> : un son de solo qui perce. Compare la forme d\'onde avec et sans saturation.',
    p:{wave:'square', filt:{cutoff:1800,res:0.35,amount:1.2,a:0.01,d:0.3,s:0.6,r:0.2}, amp:{a:0.005,d:0.2,s:0.9,r:0.2}, sat:{on:true,drive:0.6,mix:0.9}, delay:{on:true,time:0.28,fb:0.3,mix:0.25}}},
   {name:'Charleston', desc:'<b>Bruit blanc seul + passe-haut + enveloppe très courte</b> : une percussion sans hauteur, comme un hi-hat. La touche jouée ne change rien… pourquoi ?',
@@ -380,21 +477,43 @@ const satDry=G(1), satPre=G(1), shaper=ctx.createWaveShaper(), satPost=G(1), sat
 shaper.oversample='4x';
 voiceBus.connect(satDry).connect(satOut);
 voiceBus.connect(satPre).connect(shaper).connect(satPost).connect(satWet).connect(satOut);
+const lfoOsc = f => { const o=ctx.createOscillator(); o.frequency.value=f; o.start(); return o; };
+// vibrato (agit sur la hauteur de chaque oscillateur)
+const vibLfo=lfoOsc(5.5), vibAmt=G(0); vibLfo.connect(vibAmt);
+// phaser : 6 filtres passe-tout balayés par un LFO, mélangés au son direct
+const phDry=G(1), phWet=G(0), phOut=G(1), phSum=G(1), phFb=G(0), phFbD=ctx.createDelay(0.01), phLfo=lfoOsc(0.4), phAmt=G(0);
+phFbD.delayTime.value=0;
+satOut.connect(phDry).connect(phOut);
+satOut.connect(phSum);
+let phPrev=phSum;
+[250,500,900,1500,2400,3800].forEach(f=>{ const ap=ctx.createBiquadFilter(); ap.type='allpass'; ap.frequency.value=f; ap.Q.value=0.6; phAmt.connect(ap.detune); phPrev.connect(ap); phPrev=ap; });
+phLfo.connect(phAmt);
+phPrev.connect(phWet).connect(phOut);
+phPrev.connect(phFb).connect(phFbD).connect(phSum);
+// flanger : retard très court, balayé et réinjecté
+const flDry=G(1), flWet=G(0), flOut=G(1), flD=ctx.createDelay(0.05), flFb=G(0), flLfo=lfoOsc(0.25), flAmt=G(0);
+flD.delayTime.value=0.004;
+phOut.connect(flDry).connect(flOut);
+phOut.connect(flD); flD.connect(flFb).connect(flD); flD.connect(flWet).connect(flOut);
+flLfo.connect(flAmt).connect(flD.delayTime);
 // chorus
 const chDry=G(1), chWet=G(0), chOut=G(1);
-satOut.connect(chDry).connect(chOut);
+flOut.connect(chDry).connect(chOut);
 const dL=ctx.createDelay(0.1), dR=ctx.createDelay(0.1); dL.delayTime.value=0.015; dR.delayTime.value=0.015;
 const lfo=ctx.createOscillator(); lfo.frequency.value=0.6;
 const lfoL=G(0.003), lfoR=G(-0.003);
 lfo.connect(lfoL).connect(dL.delayTime); lfo.connect(lfoR).connect(dR.delayTime); lfo.start();
-satOut.connect(dL).connect(panner(-0.85)).connect(chWet);
-satOut.connect(dR).connect(panner(0.85)).connect(chWet);
+flOut.connect(dL).connect(panner(-0.85)).connect(chWet);
+flOut.connect(dR).connect(panner(0.85)).connect(chWet);
 chWet.connect(chOut);
+// trémolo : le volume ondule
+const trem=G(1), tremLfo=lfoOsc(5), tremAmt=G(0);
+chOut.connect(trem); tremLfo.connect(tremAmt).connect(trem.gain);
 // delay
 const dlDry=G(1), dlWet=G(0), dlOut=G(1), dl=ctx.createDelay(2), dlFb=G(0.35), dlTone=ctx.createBiquadFilter();
 dlTone.type='lowpass'; dlTone.frequency.value=4500;
-chOut.connect(dlDry).connect(dlOut);
-chOut.connect(dl); dl.connect(dlTone); dlTone.connect(dlFb).connect(dl); dlTone.connect(dlWet).connect(dlOut);
+trem.connect(dlDry).connect(dlOut);
+trem.connect(dl); dl.connect(dlTone); dlTone.connect(dlFb).connect(dl); dlTone.connect(dlWet).connect(dlOut);
 // sortie
 const master=G(P.master), comp=ctx.createDynamicsCompressor();
 comp.threshold.value=-8; comp.ratio.value=12; comp.attack.value=0.003; comp.release.value=0.2;
@@ -415,6 +534,13 @@ function updateFX(){
   s(chWet.gain, P.chorus.on ? P.chorus.mix : 0); s(chDry.gain, P.chorus.on ? 1-P.chorus.mix*0.4 : 1);
   dl.delayTime.setTargetAtTime(P.delay.time, now, 0.08);
   s(dlFb.gain, P.delay.fb); s(dlWet.gain, P.delay.on ? P.delay.mix : 0);
+  s(vibLfo.frequency, P.vib.rate); s(vibAmt.gain, P.vib.on ? P.vib.depth : 0);
+  s(phLfo.frequency, P.phaser.rate); s(phAmt.gain, P.phaser.depth*2400);
+  s(phFb.gain, P.phaser.on ? P.phaser.fb*0.85 : 0); s(phWet.gain, P.phaser.on ? 0.7 : 0); s(phDry.gain, P.phaser.on ? 0.7 : 1);
+  s(flLfo.frequency, P.flanger.rate); s(flAmt.gain, P.flanger.depth*0.0035);
+  s(flFb.gain, P.flanger.on ? P.flanger.fb*0.9 : 0); s(flWet.gain, P.flanger.on ? 0.7 : 0); s(flDry.gain, P.flanger.on ? 0.7 : 1);
+  const td = P.trem.on ? P.trem.depth*0.5 : 0;
+  s(tremLfo.frequency, P.trem.rate); s(trem.gain, 1-td); s(tremAmt.gain, td);
   s(master.gain, P.master);
 }
 const qFor = (type,res) => type==='bandpass' ? 0.5*Math.pow(60,res) : res*24;
@@ -430,13 +556,26 @@ function holdParam(p,t){
   if(p.cancelAndHoldAtTime) p.cancelAndHoldAtTime(t);
   else { const v=p.value; p.cancelScheduledValues(t); p.setValueAtTime(v,t); }
 }
+// tirettes : 16' 5⅓' 8' 4' 2⅔' 2' 1⅗' 1⅓' 1' = harmoniques ½ 1½ 1 2 3 4 5 6 8 de la note jouée.
+// L'oscillateur joue une octave plus bas (16'), donc rangs 1 3 2 4 6 8 10 12 16.
+const DB_H=[1,3,2,4,6,8,10,12,16];
+function makeDrawWave(){
+  const re=new Float32Array(17), im=new Float32Array(17);
+  P.draw.forEach((v,i)=>{ if(v>0) im[DB_H[i]] += Math.pow(10,(v-8)*3/20)/3.5; });
+  return ctx.createPeriodicWave(re,im,{disableNormalization:true});
+}
+let drawWave=makeDrawWave();
+function setOscWave(o,f,t){
+  if(P.wave==='drawbars'){ o.setPeriodicWave(drawWave); o.frequency.setValueAtTime(f/2,t); }
+  else { o.type=P.wave; o.frequency.setValueAtTime(f,t); }
+}
 function envHeld(e,dt){ if(dt<e.a) return dt/e.a; if(dt<e.a+e.d) return 1-(1-e.s)*(dt-e.a)/e.d; return e.s; }
 
 class Voice{
   constructor(midi){
     const t=ctx.currentTime+0.003; this.t0=t; this.midi=midi; this.freq=mtof(midi);
     this.ampEnv={...P.amp}; this.filtEnv={...P.filt};
-    this.osc=ctx.createOscillator(); this.osc.type=P.wave; this.osc.frequency.value=this.freq; this.osc.detune.value=P.detune;
+    this.osc=ctx.createOscillator(); setOscWave(this.osc,this.freq,t); this.osc.detune.value=P.detune; vibAmt.connect(this.osc.detune);
     this.og=G(P.oscLevel);
     this.ns=ctx.createBufferSource(); this.ns.buffer=noiseBufs[P.noiseColor]; this.ns.loop=true;
     this.ng=G(P.noiseLevel);
@@ -462,6 +601,7 @@ class Voice{
   }
   cleanup(){
     this.done=true;
+    try{ vibAmt.disconnect(this.osc.detune); }catch(e){}
     [this.osc,this.og,this.ns,this.ng,this.flt,this.vca].forEach(n=>{try{n.disconnect()}catch(e){}});
     const i=voices.indexOf(this); if(i>=0) voices.splice(i,1);
   }
@@ -488,7 +628,8 @@ function liveVoices(path){
   for(const v of voices){
     if(v.done) continue;
     switch(path){
-      case 'wave': v.osc.type=P.wave; break;
+      case 'wave': setOscWave(v.osc,v.freq,now); break;
+      case 'draw': if(P.wave==='drawbars') v.osc.setPeriodicWave(drawWave); break;
       case 'detune': v.osc.detune.setTargetAtTime(P.detune,now,tc); break;
       case 'oscLevel': v.og.gain.setTargetAtTime(P.oscLevel,now,tc); break;
       case 'noiseLevel': v.ng.gain.setTargetAtTime(P.noiseLevel,now,tc); break;
@@ -547,17 +688,90 @@ function refreshAll(){ refreshers.forEach(f=>f()); updateFlow(); }
 function updateFlow(){
   document.getElementById('ch-osc').classList.toggle('off', P.oscLevel<0.01);
   document.getElementById('ch-noise').classList.toggle('off', P.noiseLevel<0.01);
+  document.getElementById('ch-osc').firstChild.textContent = P.wave==='drawbars' ? 'Tirettes' : 'Oscillateur';
+  document.getElementById('ch-osc-s').style.display = P.vib.on ? '' : 'none';
+  document.getElementById('ch-pha').classList.toggle('off', !P.phaser.on);
+  document.getElementById('ch-fla').classList.toggle('off', !P.flanger.on);
+  document.getElementById('ch-tre').classList.toggle('off', !P.trem.on);
+  if(window.refreshDraw) refreshDraw();
   document.getElementById('ch-sat').classList.toggle('off', !P.sat.on);
   document.getElementById('ch-cho').classList.toggle('off', !P.chorus.on);
   document.getElementById('ch-del').classList.toggle('off', !P.delay.on);
 }
 function onParam(path){
-  if(/^(sat|chorus|delay|master)/.test(path)) updateFX();
+  if(/^(sat|chorus|delay|master|vib|phaser|flanger|trem)/.test(path)) updateFX();
   else if(!path.startsWith('ui')) liveVoices(path);
   updateFlow();
   document.querySelectorAll('.pbtn').forEach(b=>b.classList.remove('on'));
 }
-document.querySelectorAll('[data-go]').forEach(c=>c.addEventListener('click',()=>document.getElementById(c.dataset.go).scrollIntoView({behavior:'smooth',block:'start'})));
+document.querySelectorAll('[data-go]').forEach(c=>c.addEventListener('click',()=>{
+  const el=document.getElementById(c.dataset.go); setFold(el,false);
+  const card=el.closest('.card'); if(card) setFold(card,false);
+  el.scrollIntoView({behavior:'smooth',block:'start'});
+}));
+
+/* ================= VOLETS ================= */
+let folds={}; try{ folds=JSON.parse(localStorage.getItem('ms-volets')||'{}'); }catch(e){}
+function setFold(el,f){
+  if(!el.classList.contains('card') && !el.classList.contains('fx')) return;
+  el.classList.toggle('folded',f); folds[el.id]=f;
+  try{ localStorage.setItem('ms-volets',JSON.stringify(folds)); }catch(e){}
+}
+document.querySelectorAll('.card').forEach(card=>{
+  const sb=card.querySelector(':scope > .scopebar');
+  const keep = sb || card.querySelector(':scope > h2');
+  keep.classList.add('fold-keep');
+  const h=card.querySelector('h2'); h.classList.add('foldable'); h.setAttribute('role','button'); h.tabIndex=0;
+  const tog=()=>setFold(card,!card.classList.contains('folded'));
+  h.addEventListener('click',tog); h.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); tog(); } });
+  if(folds[card.id]) card.classList.add('folded');
+});
+document.querySelectorAll('.fx').forEach(fx=>{
+  const h=fx.querySelector('h3'); h.classList.add('foldable'); h.setAttribute('role','button'); h.tabIndex=0;
+  const tog=()=>setFold(fx,!fx.classList.contains('folded'));
+  h.addEventListener('click',tog); h.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); tog(); } });
+  const path=fx.querySelector('.toggle').dataset.path;
+  const f = fx.id in folds ? folds[fx.id] : !getP(path);
+  fx.classList.toggle('folded',f);
+  fx.querySelector('.toggle').addEventListener('click',()=>{ if(getP(path)) setFold(fx,false); });
+});
+
+/* ================= TIRETTES ================= */
+const DB_FT=["16'","5⅓'","8'","4'","2⅔'","2'","1⅗'","1⅓'","1'"];
+const DB_NT=['Do<br>−1 oct.','Sol','Do<br>fond.','Do','Sol','Do','Mi','Sol','Do'];
+const DB_COL=['brown','brown','white','white','black','white','black','black','white'];
+const dbBox=document.getElementById('drawbars'), dbEls=[];
+function setDraw(i,v){
+  v=Math.max(0,Math.min(8,v)); if(P.draw[i]===v && P.wave==='drawbars') return;
+  P.draw[i]=v; drawWave=makeDrawWave();
+  if(P.wave!=='drawbars'){ P.wave='drawbars'; refreshAll(); liveVoices('wave'); } else { refreshDraw(); liveVoices('draw'); }
+  updateFlow(); document.querySelectorAll('.pbtn').forEach(b=>b.classList.remove('on'));
+}
+DB_FT.forEach((ft,i)=>{
+  const d=document.createElement('div'); d.className='dbar '+DB_COL[i]; d.tabIndex=0; d.setAttribute('role','slider');
+  d.setAttribute('aria-label','Tirette '+ft); d.setAttribute('aria-valuemin',0); d.setAttribute('aria-valuemax',8);
+  d.innerHTML=`<span class="ft">${ft}</span><div class="track"><div class="rod"></div><div class="cap"></div></div><span class="nt">${DB_NT[i]}</span>`;
+  const track=d.querySelector('.track');
+  const fromY=y=>{ const r=track.getBoundingClientRect(); return Math.round((y-r.top-15)/(r.height-30)*8); };
+  let drag=false;
+  d.addEventListener('pointerdown',e=>{ e.preventDefault(); startAudio(); drag=true; try{d.setPointerCapture(e.pointerId);}catch(_){} setDraw(i,fromY(e.clientY)); });
+  d.addEventListener('pointermove',e=>{ if(drag) setDraw(i,fromY(e.clientY)); });
+  d.addEventListener('pointerup',()=>drag=false); d.addEventListener('pointercancel',()=>drag=false);
+  d.addEventListener('keydown',e=>{ if(e.key==='ArrowDown'||e.key==='ArrowRight'){e.preventDefault();setDraw(i,P.draw[i]+1);} if(e.key==='ArrowUp'||e.key==='ArrowLeft'){e.preventDefault();setDraw(i,P.draw[i]-1);} });
+  dbBox.appendChild(d); dbEls.push(d);
+});
+window.refreshDraw=function(){
+  dbEls.forEach((d,i)=>{ const v=P.draw[i], track=d.querySelector('.track'), H=track.clientHeight||170, y=(H-30)*v/8;
+    d.querySelector('.cap').style.top=y+'px'; d.querySelector('.cap').textContent=v; d.querySelector('.rod').style.height=y+'px'; d.setAttribute('aria-valuenow',v); });
+  const c=P.draw.join(''); document.getElementById('regcode').textContent=c.slice(0,2)+' '+c.slice(2,6)+' '+c.slice(6);
+  const on=P.wave==='drawbars'; dbBox.classList.toggle('inactive',!on); document.getElementById('drawnote').hidden=on;
+};
+const REGS=[['Flûte douce','008000000'],['Jazz','888000000'],['Rock','888800000'],['Gospel','888888888'],['Creux (octaves)','008080800'],['Sans fondamentale','800008008']];
+const regBox=document.getElementById('regs');
+REGS.forEach(([n,c])=>{ const b=document.createElement('button'); b.className='pbtn'; b.textContent=n;
+  b.addEventListener('click',()=>{ startAudio(); c.split('').forEach((x,i)=>P.draw[i]=+x); drawWave=makeDrawWave();
+    const was=P.wave; P.wave='drawbars'; refreshAll(); liveVoices(was==='drawbars'?'draw':'wave'); });
+  regBox.appendChild(b); });
 
 // sons de départ
 const pbox=document.getElementById('presets'), pdesc=document.getElementById('pdesc');
@@ -566,7 +780,8 @@ PRESETS.forEach((pr,i)=>{
   b.addEventListener('click',()=>{
     const scope=P.ui.scope, vol=P.master;
     Object.assign(P, deepMerge(clone(DEFAULT), clone(pr.p))); P.ui.scope=scope; P.master=vol;
-    refreshAll(); updateFX();
+    drawWave=makeDrawWave(); refreshAll(); updateFX();
+    if(started) document.querySelectorAll('.fx').forEach(fx=>{ if(getP(fx.querySelector('.toggle').dataset.path)) setFold(fx,false); });
     ['wave','detune','oscLevel','noiseLevel','filt.type','filt.cutoff','filt.res'].forEach(liveVoices);
     document.querySelectorAll('.pbtn').forEach(x=>x.classList.toggle('on',x===b));
     pdesc.innerHTML=pr.desc;
@@ -718,7 +933,8 @@ function drawScope(cv){
   if(P.ui.scope==='wave'){
     g.beginPath(); g.moveTo(0,h/2); g.lineTo(w,h/2); g.stroke();
     analyser.getFloatTimeDomainData(tbuf);
-    const f = lastVoice ? lastVoice.freq : 220;
+    let f = lastVoice ? lastVoice.freq : 220;
+    if(P.wave==='drawbars' && (P.draw[0]||P.draw[1])) f/=2;
     const per = ctx.sampleRate/f;
     const N = Math.round(Math.min(3000, Math.max(250, per*3)));
     let start=0; for(let i=1;i<tbuf.length-N;i++){ if(tbuf[i-1]<0&&tbuf[i]>=0){ start=i; break; } }
