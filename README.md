@@ -43,6 +43,10 @@ Chaque module a une explication **Comprendre** rédigée simplement. Chaque sect
 - **Rien à installer.** Une seule page web, sans échantillon sonore : tous les sons sont fabriqués en direct par le navigateur (Web Audio).
 - **Conventions de notation françaises** : notes en Do, Ré, Mi… ; octaves numérotées à la française (La3 = 440 Hz).
 
+## Clavier MIDI
+
+Avec Chrome ou Edge (ordinateur) ou Chrome (Android), branche un clavier en USB et touche **🎹 Clavier MIDI** : les touches jouent le synthé, la molette de pitch fait glisser la hauteur (± 2 demi-tons), la molette de modulation dose le vibrato, la pédale de sustain tient les notes. **Apprendre un bouton** relie un potard ou un fader à n'importe quel curseur (coupure, résonance, ADSR…). Pas disponible sur iPad / iPhone (Apple ne le permet pas).
+
 ## Licences
 
 - **Tout le projet** (code, textes, exercices, schémas, partitions) : © 2026 Mickael Le Van, **tous droits réservés** (voir [`LICENSE`](LICENSE)). Reproduction, diffusion et usage commercial interdits sans autorisation écrite de l’auteur. Les éléments de tiers cités restent sous leur propre licence.

@@ -148,6 +148,14 @@ footer{max-width:1240px;margin:0 auto;padding:0 18px;color:var(--muted);font-siz
 
 /* pas de menu contextuel ni de sélection sur les zones de jeu (appui long) */
 .keyboard, .key, .drawbars, .dbar, .kbwrap{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+
+.midibar{max-width:1240px;margin:6px auto 0;padding:0 16px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:13px;color:var(--muted)}
+.midibar button{background:var(--panel2,#22262f);border:1px solid var(--line,#2e333e);color:var(--text,#ece9e2);border-radius:8px;padding:5px 10px;font:inherit;font-size:13px;cursor:pointer}
+.midibar button.on{border-color:#7bd389;color:#7bd389}
+#midiMap button{padding:0 6px;margin-left:3px}
+.midilearn-on{outline:2px dashed #7bd389;outline-offset:3px;border-radius:6px;cursor:pointer}
+.midilearn-sel{outline-style:solid;background:rgba(123,211,137,.1)}
+@media (hover:none){.midibar{display:none}}
 </style>
 </head>
 <body>
@@ -155,6 +163,7 @@ footer{max-width:1240px;margin:0 auto;padding:0 18px;color:var(--muted);font-siz
   <div class="htop"><h1>Mini-synthé <span>pédagogique</span></h1><button id="install" hidden>Installer l'appli</button></div>
   <p class="lead">Suis le parcours du son : une <b>source</b> (oscillateur, bruit) produit un son riche, le <b>filtre</b> le sculpte, l'<b>ampli</b> lui donne sa forme dans le temps, puis les <b>effets</b> l'habillent. Joue sur le clavier en bas et observe l'écran.</p>
 </header>
+<div class="midibar"><button id="midiBtn" type="button">🎹 Clavier MIDI</button><button id="midiLearn" type="button" hidden>Apprendre un bouton</button><span id="midiStat"></span><span id="midiHint"></span><span id="midiMap"></span></div>
 
 <main>
   <nav class="flow" aria-label="Parcours du signal">
@@ -483,6 +492,8 @@ voiceBus.connect(satPre).connect(shaper).connect(satPost).connect(satWet).connec
 const lfoOsc = f => { const o=ctx.createOscillator(); o.frequency.value=f; o.start(); return o; };
 // vibrato (agit sur la hauteur de chaque oscillateur)
 const vibLfo=lfoOsc(5.5), vibAmt=G(0); vibLfo.connect(vibAmt);
+const bendSrc=ctx.createConstantSource?ctx.createConstantSource():null; if(bendSrc){ bendSrc.offset.value=0; bendSrc.start(); }
+let midiSusOn=false; const midiSus=new Set();
 // phaser : 6 filtres passe-tout balayés par un LFO, mélangés au son direct
 const phDry=G(1), phWet=G(0), phOut=G(1), phSum=G(1), phFb=G(0), phFbD=ctx.createDelay(0.01), phLfo=lfoOsc(0.4), phAmt=G(0);
 phFbD.delayTime.value=0;
@@ -578,7 +589,7 @@ class Voice{
   constructor(midi){
     const t=ctx.currentTime+0.003; this.t0=t; this.midi=midi; this.freq=mtof(midi);
     this.ampEnv={...P.amp}; this.filtEnv={...P.filt};
-    this.osc=ctx.createOscillator(); setOscWave(this.osc,this.freq,t); this.osc.detune.value=P.detune; vibAmt.connect(this.osc.detune);
+    this.osc=ctx.createOscillator(); setOscWave(this.osc,this.freq,t); this.osc.detune.value=P.detune; vibAmt.connect(this.osc.detune); if(bendSrc) bendSrc.connect(this.osc.detune);
     this.og=G(P.oscLevel);
     this.ns=ctx.createBufferSource(); this.ns.buffer=noiseBufs[P.noiseColor]; this.ns.loop=true;
     this.ng=G(P.noiseLevel);
@@ -604,7 +615,7 @@ class Voice{
   }
   cleanup(){
     this.done=true;
-    try{ vibAmt.disconnect(this.osc.detune); }catch(e){}
+    try{ vibAmt.disconnect(this.osc.detune); }catch(e){} try{ bendSrc&&bendSrc.disconnect(this.osc.detune); }catch(e){}
     [this.osc,this.og,this.ns,this.ng,this.flt,this.vca].forEach(n=>{try{n.disconnect()}catch(e){}});
     const i=voices.indexOf(this); if(i>=0) voices.splice(i,1);
   }
@@ -983,6 +994,46 @@ window.addEventListener('appinstalled',()=>{ instBtn.hidden=true; });
 
 /* appui long : pas de menu contextuel sur les zones de jeu */
 ['contextmenu','selectstart'].forEach(ev=>document.addEventListener(ev,e=>{ if(e.target.closest&&e.target.closest('.keyboard,.key,.drawbars,.dbar,.kbwrap')) e.preventDefault(); }));
+
+const H={
+  noteOn:(ch,n,v)=>{ midiSus.delete(n); noteOn(n); },
+  noteOff:(ch,n)=>{ if(midiSusOn) midiSus.add(n); else noteOff(n); },
+  sustain:on=>{ midiSusOn=on; if(!on){ midiSus.forEach(n=>noteOff(n)); midiSus.clear(); } },
+  bend:v=>{ if(bendSrc) bendSrc.offset.setTargetAtTime(v*200,ctx.currentTime,.005); },
+  mod:x=>{ if(x>0.01) vibAmt.gain.setTargetAtTime(x*40,ctx.currentTime,.03); else updateFX(); } };
+
+/* ================= CLAVIER MIDI (Web MIDI) ================= */
+const MIDIK={on:false,map:{},learn:0,learnKey:null,access:null};
+try{ const s=JSON.parse(localStorage.getItem('mini-synthe-midi')||'{}'); MIDIK.on=!!s.on; MIDIK.map=s.map||{}; }catch(e){}
+const midiSave=()=>{ try{ localStorage.setItem('mini-synthe-midi',JSON.stringify({on:MIDIK.on,map:MIDIK.map})); }catch(e){} };
+const rangeKey=inp=>inp.id||((inp.closest('[data-path]')||{}).dataset||{}).path||inp.getAttribute('aria-label')||'';
+const rangeByKey=k=>[...document.querySelectorAll('input[type=range]')].find(i=>rangeKey(i)===k);
+const rangeLabel=k=>{ const i=rangeByKey(k); return (i&&(i.getAttribute('aria-label')||i.id))||k; };
+function midiCCx(cc,val){
+  if(MIDIK.learn===2&&MIDIK.learnKey){ MIDIK.map[cc]=MIDIK.learnKey; midiSave(); midiLearnStop(); midiRenderMap(); return; }
+  const k=MIDIK.map[cc]; if(k){ const i=rangeByKey(k); if(i){ const mn=+i.min||0, mx=+(i.max||100), st=+i.step||0; let v=mn+(mx-mn)*val/127; if(st) v=Math.round(v/st)*st; i.value=v; i.dispatchEvent(new Event('input',{bubbles:true})); i.dispatchEvent(new Event('change',{bubbles:true})); } return; }
+  if(cc===1&&H.mod) H.mod(val/127); else if(cc===64&&H.sustain) H.sustain(val>=64);
+}
+function midiMsg(e){ const [st,d1,d2]=e.data, ty=st&0xf0, ch=st&0x0f;
+  if(ty===0x90&&d2>0) H.noteOn&&H.noteOn(ch,d1,d2/127);
+  else if(ty===0x80||(ty===0x90&&d2===0)) H.noteOff&&H.noteOff(ch,d1);
+  else if(ty===0xB0) midiCCx(d1,d2);
+  else if(ty===0xE0&&H.bend) H.bend((((d2<<7)|d1)-8192)/8192); }
+function midiBind(){ if(!MIDIK.access) return; const n=[]; MIDIK.access.inputs.forEach(i=>{ i.onmidimessage=midiMsg; n.push(i.name); });
+  document.getElementById('midiStat').textContent=n.length?'connecté : '+n.join(', '):'aucun clavier détecté'; }
+async function midiEnable(){ const b=document.getElementById('midiBtn');
+  if(!navigator.requestMIDIAccess){ document.getElementById('midiStat').textContent='ce navigateur ne gère pas le MIDI (iPad, iPhone, Safari) : utilise Chrome ou Edge'; return; }
+  try{ MIDIK.access=await navigator.requestMIDIAccess(); MIDIK.on=true; midiSave(); MIDIK.access.onstatechange=midiBind; midiBind(); b.classList.add('on'); b.textContent='🎹 MIDI activé'; document.getElementById('midiLearn').hidden=false; }
+  catch(e){ document.getElementById('midiStat').textContent='accès au MIDI refusé par le navigateur'; } }
+function midiLearnStop(){ MIDIK.learn=0; MIDIK.learnKey=null; document.querySelectorAll('.midilearn-on').forEach(x=>x.classList.remove('midilearn-on','midilearn-sel')); document.getElementById('midiLearn').classList.remove('on'); document.getElementById('midiHint').textContent=''; }
+function midiRenderMap(){ const box=document.getElementById('midiMap'), e=Object.entries(MIDIK.map); box.innerHTML=e.length?'Reliés : '+e.map(([cc,k])=>`CC ${cc} → ${rangeLabel(k)} <button data-cc="${cc}" aria-label="Supprimer">×</button>`).join(' · '):'';
+  box.querySelectorAll('button').forEach(b=>b.onclick=()=>{ delete MIDIK.map[b.dataset.cc]; midiSave(); midiRenderMap(); }); }
+document.getElementById('midiBtn').onclick=midiEnable;
+document.getElementById('midiLearn').onclick=()=>{ if(MIDIK.learn){ midiLearnStop(); return; } MIDIK.learn=1; document.getElementById('midiLearn').classList.add('on');
+  document.querySelectorAll('input[type=range]').forEach(i=>(i.closest('.slider')||i.parentElement).classList.add('midilearn-on')); document.getElementById('midiHint').textContent='Touche un curseur, puis tourne un bouton du clavier…'; };
+document.addEventListener('pointerdown',e=>{ if(MIDIK.learn!==1) return; const box=e.target.closest('.midilearn-on'); if(!box) return; const i=box.querySelector('input[type=range]')||(box.matches('input')?box:null); if(!i) return;
+  e.preventDefault(); e.stopPropagation(); MIDIK.learn=2; MIDIK.learnKey=rangeKey(i); box.classList.add('midilearn-sel'); document.getElementById('midiHint').textContent='« '+rangeLabel(MIDIK.learnKey)+' » : tourne maintenant un bouton ou un fader.'; },true);
+midiRenderMap(); if(MIDIK.on&&navigator.requestMIDIAccess) midiEnable();
 </script>
 </body>
 </html>
