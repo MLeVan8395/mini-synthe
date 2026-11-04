@@ -145,6 +145,9 @@ details.help b{color:var(--text)}
 footer{max-width:1240px;margin:0 auto;padding:0 18px;color:var(--muted);font-size:12px}
 .startnote{display:none;background:var(--osc);color:#121419;border-radius:8px;padding:6px 10px;font-weight:600}
 .startnote.show{display:inline-block}
+
+/* pas de menu contextuel ni de sélection sur les zones de jeu (appui long) */
+.keyboard, .key, .drawbars, .dbar, .kbwrap{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 </style>
 </head>
 <body>
@@ -977,6 +980,9 @@ let askInstall=null; const instBtn=document.getElementById('install');
 window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); askInstall=e; instBtn.hidden=false; });
 instBtn.addEventListener('click',async()=>{ if(!askInstall) return; askInstall.prompt(); try{ await askInstall.userChoice; }catch(e){} askInstall=null; instBtn.hidden=true; });
 window.addEventListener('appinstalled',()=>{ instBtn.hidden=true; });
+
+/* appui long : pas de menu contextuel sur les zones de jeu */
+['contextmenu','selectstart'].forEach(ev=>document.addEventListener(ev,e=>{ if(e.target.closest&&e.target.closest('.keyboard,.key,.drawbars,.dbar,.kbwrap')) e.preventDefault(); }));
 </script>
 </body>
 </html>
