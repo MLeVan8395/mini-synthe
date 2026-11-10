@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mini-synthé pédagogique</title>
-<meta name="description" content="Un petit synthétiseur en ligne pour comprendre la synthèse soustractive : oscillateur, bruit, filtre, enveloppes ADSR, saturation, chorus et delay.">
+<meta name="description" content="Un petit synthétiseur en ligne pour comprendre la synthèse soustractive : oscillateur, bruit, filtre, enveloppes ADSR, LFO, saturation, chorus et delay.">
 <meta name="theme-color" content="#121419">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icones/icone-192.png">
@@ -14,7 +14,7 @@
 <style>
 :root{
   --bg:#121419; --panel:#1b1e26; --panel2:#22262f; --line:#2e333e; --text:#ece9e2; --muted:#9aa1ad;
-  --osc:#f5a623; --noise:#a9bcd0; --filt:#2ec4b6; --amp:#7bd389; --fx:#c792ea; --out:#ff6b6b;
+  --osc:#f5a623; --noise:#a9bcd0; --filt:#2ec4b6; --amp:#7bd389; --fx:#c792ea; --out:#ff6b6b; --lfo:#6cb6ff;
   --mono:'JetBrains Mono',ui-monospace,monospace;
 }
 *{box-sizing:border-box}
@@ -75,6 +75,7 @@ canvas{display:block;width:100%;background:#0d0f13;border:1px solid var(--line);
 .cv-env{height:110px;margin:4px 0 6px}
 .cv-filt{height:120px;margin:4px 0 6px}
 .cv-scope{height:170px}
+.cv-lfo{height:92px;margin:4px 0 6px}
 
 .two{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
 
@@ -189,6 +190,8 @@ footer{max-width:1240px;margin:0 auto;padding:0 18px;color:var(--muted);font-siz
     <button class="chip" style="--c:var(--fx)" data-go="fx-del" id="ch-del">Delay</button>
     <span class="arrow">→</span>
     <button class="chip" style="--c:var(--out)" data-go="m-out">Sortie</button>
+    <span class="arrow" style="margin:0 4px">·</span>
+    <button class="chip" style="--c:var(--lfo)" data-go="m-lfo" id="ch-lfo">LFO<small id="ch-lfo-s">non branché</small></button>
   </nav>
 
   <section class="presets" aria-label="Sons de départ">
@@ -326,6 +329,41 @@ footer{max-width:1240px;margin:0 auto;padding:0 18px;color:var(--muted);font-siz
       </details>
     </section>
 
+    <!-- LFO -->
+    <section class="card" id="m-lfo" style="--c:var(--lfo)">
+      <h2><span class="num">LFO</span> Modulation</h2>
+      <p class="sub">Un oscillateur très lent, qu'on n'entend pas : il tourne un bouton à ta place.</p>
+      <div class="lbl">Le LFO fait bouger…</div>
+      <div class="seg" data-path="mod.dest">
+        <button data-val="none">Rien</button>
+        <button data-val="filt">Le filtre</button>
+        <button data-val="pitch">La hauteur</button>
+        <button data-val="vol">Le volume</button>
+      </div>
+      <canvas class="cv-lfo" id="cv-lfo"></canvas>
+      <div class="lbl">Forme du mouvement</div>
+      <div class="seg" data-path="mod.wave">
+        <button data-val="sine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12 C5 2,9 2,12 12 S19 22,22 12"/></svg>Sinus</button>
+        <button data-val="triangle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12 L7 4 L17 20 L22 12"/></svg>Triangle</button>
+        <button data-val="sawtooth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 18 L12 6 L12 18 L22 6 L22 18"/></svg>Dent de scie</button>
+        <button data-val="square"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 18 L2 6 L12 6 L12 18 L22 18 L22 6"/></svg>Carré</button>
+        <button data-val="random"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 14 L6 14 L6 6 L10 6 L10 18 L14 18 L14 10 L18 10 L18 20 L22 20"/></svg>Hasard</button>
+      </div>
+      <div class="slider" data-path="mod.rate" data-label="Vitesse" data-min="0.05" data-max="20" data-scale="log" data-fmt="modr"></div>
+      <div class="slider" data-path="mod.depth" data-label="Profondeur" data-min="0" data-max="1" data-fmt="modd"></div>
+      <details class="help"><summary>Comprendre</summary>
+        <p><b>LFO</b> veut dire <i>Low Frequency Oscillator</i>, oscillateur basse fréquence. C'est un oscillateur comme le n° 1, mais si lent (moins de 20 vibrations par seconde) qu'on ne l'entend pas. On ne l'envoie pas vers la sortie : on le <b>branche sur un réglage</b>, qu'il fait monter et descendre tout seul, comme une main invisible qui tourne le bouton.</p>
+        <ul>
+          <li><b>Le filtre</b> : la coupure s'ouvre et se referme. C'est le « wah-wah » automatique et le « wobble » des basses électro. Regarde la courbe du filtre bouger.</li>
+          <li><b>La hauteur</b> : la note monte et descend. Petit et rapide, c'est un vibrato ; grand et lent, une sirène.</li>
+          <li><b>Le volume</b> : le son palpite, c'est un trémolo.</li>
+        </ul>
+        <p>Tu connais donc déjà deux LFO : le <b>vibrato</b> et le <b>trémolo</b> des effets sont des LFO déjà branchés. Ici, c'est toi qui choisis le branchement.</p>
+        <p><b>Vitesse</b> : en hertz (Hz), le nombre d'allers-retours par seconde. Lien avec la FM : 2 Hz, c'est 2 battements par seconde, donc des <b>noires à 120</b> ; 4 Hz, des croches à 120. L'équivalent s'affiche à côté du curseur.</p>
+        <p><b>Forme</b> : <b>sinus</b> et <b>triangle</b> font un va-et-vient régulier ; la <b>dent de scie</b> monte puis retombe d'un coup ; le <b>carré</b> saute entre deux positions (sur la hauteur : deux notes qui alternent, comme un trille) ; <b>hasard</b> choisit une nouvelle valeur à chaque pas (en anglais <i>sample &amp; hold</i>) : sur un filtre résonant, c'est le son des ordinateurs de science-fiction.</p>
+      </details>
+    </section>
+
     <!-- EFFETS -->
     <section class="card wide" id="m-fx" style="--c:var(--fx)">
       <h2><span class="num">4</span> Effets</h2>
@@ -422,6 +460,7 @@ const DEFAULT = {
   phaser:{on:false, rate:0.4, depth:0.7, fb:0.5},
   flanger:{on:false, rate:0.25, depth:0.6, fb:0.6},
   trem:{on:false, rate:5, depth:0.6},
+  mod:{dest:'none', wave:'sine', rate:2, depth:0.5},
   master:0.7,
   ui:{scope:'wave'}
 };
@@ -451,6 +490,12 @@ const PRESETS = [
    p:{wave:'triangle', filt:{cutoff:3000,res:0,amount:0.5}, amp:{a:0.01,d:0.3,s:0.8,r:0.5}, trem:{on:true,rate:6,depth:0.8}, delay:{on:true,time:0.3,fb:0.25,mix:0.2}}},
   {name:'Lead saturé', desc:'<b>Carré + saturation + delay</b> : un son de solo qui perce. Compare la forme d\'onde avec et sans saturation.',
    p:{wave:'square', filt:{cutoff:1800,res:0.35,amount:1.2,a:0.01,d:0.3,s:0.6,r:0.2}, amp:{a:0.005,d:0.2,s:0.9,r:0.2}, sat:{on:true,drive:0.6,mix:0.9}, delay:{on:true,time:0.28,fb:0.3,mix:0.25}}},
+  {name:'Basse wobble', desc:'<b>LFO → filtre</b> : la coupure s\'ouvre et se referme toute seule, 3 fois par seconde. Joue dans le grave (◀ Oct.), puis change la vitesse et la forme du LFO.',
+   p:{wave:'sawtooth', filt:{cutoff:420,res:0.55,amount:0,a:0.005,d:0.2,s:1,r:0.15}, amp:{a:0.005,d:0.2,s:1,r:0.12}, mod:{dest:'filt',wave:'sine',rate:3,depth:0.6}}},
+  {name:'Sirène', desc:'<b>LFO → hauteur</b>, lent et profond : la note monte et descend toute seule. Essaie la forme « Carré » : deux notes alternent, comme une sirène de pompiers.',
+   p:{wave:'square', filt:{cutoff:2600,res:0.1,amount:0}, amp:{a:0.03,d:0.2,s:1,r:0.2}, mod:{dest:'pitch',wave:'triangle',rate:0.5,depth:0.7}}},
+  {name:'Ordinateur fou', desc:'<b>LFO « Hasard » → filtre très résonant</b> : à chaque pas, la coupure saute à une nouvelle place. Tiens une note grave et écoute la « mélodie » que le filtre fabrique dans les harmoniques.',
+   p:{wave:'sawtooth', filt:{cutoff:900,res:0.85,amount:0,a:0.01,d:0.2,s:1,r:0.2}, amp:{a:0.01,d:0.2,s:1,r:0.2}, mod:{dest:'filt',wave:'random',rate:8,depth:0.6}, delay:{on:true,time:0.25,fb:0.3,mix:0.2}}},
   {name:'Charleston', desc:'<b>Bruit blanc seul + passe-haut + enveloppe très courte</b> : une percussion sans hauteur, comme un hi-hat. La touche jouée ne change rien… pourquoi ?',
    p:{oscLevel:0, noiseLevel:1, noiseColor:'white', filt:{type:'highpass',cutoff:7000,res:0.2,amount:0}, amp:{a:0.001,d:0.07,s:0,r:0.06}}},
   {name:'Vent', desc:'<b>Bruit rose + passe-bande résonant</b> : bouge la fréquence de coupure lentement pendant que tu tiens une note, le vent souffle.',
@@ -487,9 +532,20 @@ const voiceBus = G(1);
 // saturation
 const satDry=G(1), satPre=G(1), shaper=ctx.createWaveShaper(), satPost=G(1), satWet=G(0), satOut=G(1);
 shaper.oversample='4x';
-voiceBus.connect(satDry).connect(satOut);
-voiceBus.connect(satPre).connect(shaper).connect(satPost).connect(satWet).connect(satOut);
+// LFO assignable : volume (ici), coupure du filtre et hauteur (dans chaque voix)
+const modVca=G(1); voiceBus.connect(modVca);
+modVca.connect(satDry).connect(satOut);
+modVca.connect(satPre).connect(shaper).connect(satPost).connect(satWet).connect(satOut);
 const lfoOsc = f => { const o=ctx.createOscillator(); o.frequency.value=f; o.start(); return o; };
+// LFO assignable : un oscillateur lent, ou une suite de valeurs au hasard (64 pas en boucle)
+const modOsc=lfoOsc(2), modOscG=G(1), modRndG=G(0), modBus=G(1), modFilt=G(0), modPitch=G(0), modVolAmt=G(0);
+const modRnd=ctx.createBufferSource();
+{ const b=ctx.createBuffer(1,64000,8000), d=b.getChannelData(0); let v=0;
+  for(let k=0;k<64;k++){ let n; do{ n=Math.random()*2-1; }while(Math.abs(n-v)<0.3); v=n; d.fill(v,k*1000,(k+1)*1000); }
+  modRnd.buffer=b; modRnd.loop=true; modRnd.playbackRate.value=0.25; modRnd.start(); }
+modOsc.connect(modOscG).connect(modBus); modRnd.connect(modRndG).connect(modBus);
+modBus.connect(modFilt); modBus.connect(modPitch); modBus.connect(modVolAmt).connect(modVca.gain);
+const modAn=ctx.createAnalyser(); modAn.fftSize=8192; modBus.connect(modAn); modAn.connect(G(0)).connect(ctx.destination);
 // vibrato (agit sur la hauteur de chaque oscillateur)
 const vibLfo=lfoOsc(5.5), vibAmt=G(0); vibLfo.connect(vibAmt);
 const bendSrc=ctx.createConstantSource?ctx.createConstantSource():null; if(bendSrc){ bendSrc.offset.value=0; bendSrc.start(); }
@@ -555,8 +611,15 @@ function updateFX(){
   s(flFb.gain, P.flanger.on ? P.flanger.fb*0.9 : 0); s(flWet.gain, P.flanger.on ? 0.7 : 0); s(flDry.gain, P.flanger.on ? 0.7 : 1);
   const td = P.trem.on ? P.trem.depth*0.5 : 0;
   s(tremLfo.frequency, P.trem.rate); s(trem.gain, 1-td); s(tremAmt.gain, td);
+  const m=P.mod, md=m.depth, rnd=m.wave==='random';
+  if(!rnd && modOsc.type!==m.wave) modOsc.type=m.wave;
+  s(modOscG.gain, rnd?0:1); s(modRndG.gain, rnd?1:0);
+  s(modOsc.frequency, m.rate); s(modRnd.playbackRate, m.rate/8);
+  s(modFilt.gain, m.dest==='filt' ? md*MOD_FILT : 0); s(modPitch.gain, m.dest==='pitch' ? modCents(md) : 0);
+  const mv = m.dest==='vol' ? md*0.5 : 0; s(modVca.gain, 1-mv); s(modVolAmt.gain, mv);
   s(master.gain, P.master);
 }
+const MOD_FILT=3600, modCents=d=>1200*d*d;   // profondeur max : ±3 octaves sur le filtre, ±1 octave sur la hauteur
 const qFor = (type,res) => type==='bandpass' ? 0.5*Math.pow(60,res) : res*24;
 
 /* ================= VOIX ================= */
@@ -589,12 +652,12 @@ class Voice{
   constructor(midi){
     const t=ctx.currentTime+0.003; this.t0=t; this.midi=midi; this.freq=mtof(midi);
     this.ampEnv={...P.amp}; this.filtEnv={...P.filt};
-    this.osc=ctx.createOscillator(); setOscWave(this.osc,this.freq,t); this.osc.detune.value=P.detune; vibAmt.connect(this.osc.detune); if(bendSrc) bendSrc.connect(this.osc.detune);
+    this.osc=ctx.createOscillator(); setOscWave(this.osc,this.freq,t); this.osc.detune.value=P.detune; vibAmt.connect(this.osc.detune); modPitch.connect(this.osc.detune); if(bendSrc) bendSrc.connect(this.osc.detune);
     this.og=G(P.oscLevel);
     this.ns=ctx.createBufferSource(); this.ns.buffer=noiseBufs[P.noiseColor]; this.ns.loop=true;
     this.ng=G(P.noiseLevel);
     this.flt=ctx.createBiquadFilter(); this.flt.type=P.filt.type; this.flt.frequency.value=P.filt.cutoff; this.flt.Q.value=qFor(P.filt.type,P.filt.res);
-    this.vca=G(0);
+    this.vca=G(0); modFilt.connect(this.flt.detune);
     this.osc.connect(this.og).connect(this.flt); this.ns.connect(this.ng).connect(this.flt);
     this.flt.connect(this.vca).connect(voiceBus);
     const A=this.ampEnv, g=this.vca.gain;
@@ -615,7 +678,7 @@ class Voice{
   }
   cleanup(){
     this.done=true;
-    try{ vibAmt.disconnect(this.osc.detune); }catch(e){} try{ bendSrc&&bendSrc.disconnect(this.osc.detune); }catch(e){}
+    try{ vibAmt.disconnect(this.osc.detune); }catch(e){} try{ modPitch.disconnect(this.osc.detune); }catch(e){} try{ modFilt.disconnect(this.flt.detune); }catch(e){} try{ bendSrc&&bendSrc.disconnect(this.osc.detune); }catch(e){}
     [this.osc,this.og,this.ns,this.ng,this.flt,this.vca].forEach(n=>{try{n.disconnect()}catch(e){}});
     const i=voices.indexOf(this); if(i>=0) voices.splice(i,1);
   }
@@ -676,6 +739,15 @@ const FMT = {
   oct: v => (v>0?'+':'')+v.toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})+' oct.',
   cents: v => (v>0?'+':'')+Math.round(v)+' cents',
   lfo: v => v.toLocaleString('fr-FR',{maximumFractionDigits:2})+' Hz',
+  modr: v => { const hz=v.toLocaleString('fr-FR',{maximumFractionDigits:2})+' Hz', bpm=v*60;
+    if(v<0.5) return hz+' · 1 cycle en '+(1/v).toLocaleString('fr-FR',{maximumFractionDigits:1})+' s';
+    if(bpm<=200) return hz+' · noires à '+Math.round(bpm);
+    if(bpm<=400) return hz+' · croches à '+Math.round(bpm/2);
+    return hz+' · doubles à '+Math.round(bpm/4); },
+  modd: v => { const d=P.mod.dest, n=(x,k)=>x.toLocaleString('fr-FR',{maximumFractionDigits:k});
+    if(d==='filt') return '± '+n(v*MOD_FILT/1200,1)+' oct.';
+    if(d==='pitch'){ const c=modCents(v); return c<100 ? '± '+Math.round(c)+' cents' : '± '+n(c/100,1)+' demi-ton'+(c>=150?'s':''); }
+    return Math.round(v*100)+' %'; },
 };
 const refreshers=[];
 document.querySelectorAll('.slider').forEach(el=>{
@@ -711,9 +783,12 @@ function updateFlow(){
   document.getElementById('ch-sat').classList.toggle('off', !P.sat.on);
   document.getElementById('ch-cho').classList.toggle('off', !P.chorus.on);
   document.getElementById('ch-del').classList.toggle('off', !P.delay.on);
+  document.getElementById('ch-lfo').classList.toggle('off', P.mod.dest==='none');
+  document.getElementById('ch-lfo-s').textContent = {none:'non branché', filt:'→ filtre', pitch:'→ hauteur', vol:'→ volume'}[P.mod.dest];
 }
 function onParam(path){
-  if(/^(sat|chorus|delay|master|vib|phaser|flanger|trem)/.test(path)) updateFX();
+  if(/^(sat|chorus|delay|master|vib|phaser|flanger|trem|mod)/.test(path)) updateFX();
+  if(path==='mod.dest') refreshers.forEach(f=>f());
   else if(!path.startsWith('ui')) liveVoices(path);
   updateFlow();
   document.querySelectorAll('.pbtn').forEach(b=>b.classList.remove('on'));
@@ -877,7 +952,7 @@ function fit(cv){
   const g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); return {g,w:r.width,h:r.height};
 }
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-const COL={osc:css('--osc'),filt:css('--filt'),amp:css('--amp'),out:css('--out'),line:css('--line'),muted:css('--muted')};
+const COL={osc:css('--osc'),filt:css('--filt'),amp:css('--amp'),out:css('--out'),lfo:css('--lfo'),line:css('--line'),muted:css('--muted')};
 const alpha=(hex,a)=>{ const n=parseInt(hex.slice(1),16); return `rgba(${n>>16},${(n>>8)&255},${n&255},${a})`; };
 
 function drawEnv(cv, env, color, kind){
@@ -924,7 +999,8 @@ function drawFilter(cv){
   [100,1000,10000].forEach(f=>{ const x=fx(f); g.beginPath(); g.moveTo(x,0); g.lineTo(x,h); g.stroke(); g.fillText(f>=1000?f/1000+'k':f,x+3,h-4); });
   g.setLineDash([3,4]); g.beginPath(); g.moveTo(0,Y(0)); g.lineTo(w,Y(0)); g.stroke(); g.setLineDash([]);
   let lvl=0; const v=lastVoice; if(v&&!v.done) lvl=v.filtLevel(ctx.currentTime);
-  const fc=Math.min(20000,Math.max(20,P.filt.cutoff*Math.pow(2,P.filt.amount*lvl)));
+  const lfoOct = P.mod.dest==='filt' ? P.mod.depth*MOD_FILT/1200*modNow : 0;
+  const fc=Math.min(20000,Math.max(20,P.filt.cutoff*Math.pow(2,P.filt.amount*lvl+lfoOct)));
   // ouverture max de l'enveloppe
   if(Math.abs(P.filt.amount)>0.05){
     const fm=Math.min(20000,Math.max(20,P.filt.cutoff*Math.pow(2,P.filt.amount)));
@@ -937,6 +1013,27 @@ function drawFilter(cv){
   g.strokeStyle='#fff'; g.lineWidth=1.2; g.beginPath(); g.moveTo(fx(fc),0); g.lineTo(fx(fc),h); g.stroke();
   g.fillStyle=COL.filt; g.textAlign=fx(fc)>w-70?'right':'left'; g.fillText(FMT.hz(fc), fx(fc)+(g.textAlign==='right'?-4:4), 12); g.textAlign='left';
   g.fillStyle=COL.muted; g.fillText('graves', 4, 12); g.textAlign='right'; g.fillText('aigus', w-4, h-16); g.textAlign='left';
+}
+
+// LFO : on relit le vrai signal du LFO et on garde les 3 dernières secondes
+const modBuf=new Float32Array(modAn.fftSize), MH=1200, modHist=new Float32Array(MH), MDEC=Math.max(1,Math.round(ctx.sampleRate/400));
+let modHi=0, modT=0, modCarry=0, modNow=0;
+function readMod(){
+  modAn.getFloatTimeDomainData(modBuf);
+  const L=modBuf.length, t=ctx.currentTime, n=Math.min(L,Math.max(0,Math.round((t-modT)*ctx.sampleRate))); modT=t;
+  let i=L-n+modCarry; for(;i<L;i+=MDEC){ modHist[modHi]=modBuf[i]; modHi=(modHi+1)%MH; } modCarry=i-L;
+  if(n) modNow=modBuf[L-1];
+}
+function drawLfo(cv){
+  const {g,w,h}=fit(cv); g.clearRect(0,0,w,h);
+  const on=P.mod.dest!=='none', mid=h/2, A=(h/2-14)*(on ? 0.12+0.88*P.mod.depth : 0.6), xr=w-10;
+  g.strokeStyle=COL.line; g.lineWidth=1; g.setLineDash([3,4]); g.beginPath(); g.moveTo(0,mid); g.lineTo(w,mid); g.stroke(); g.setLineDash([]);
+  g.beginPath(); for(let k=0;k<MH;k++){ const x=k/(MH-1)*xr, y=mid-modHist[(modHi+k)%MH]*A; k?g.lineTo(x,y):g.moveTo(x,y); }
+  g.strokeStyle=alpha(COL.lfo,on?1:0.4); g.lineWidth=2; g.lineJoin='round'; g.stroke();
+  g.fillStyle='#fff'; g.beginPath(); g.arc(xr,mid-modNow*A,4.5,0,7); g.fill(); g.strokeStyle=COL.lfo; g.stroke();
+  g.fillStyle=on?COL.lfo:COL.muted; g.font='10px JetBrains Mono, monospace'; g.textAlign='left';
+  g.fillText({none:'LFO non branché', filt:'↑ coupure du filtre', pitch:'↑ hauteur de la note', vol:'↑ volume'}[P.mod.dest], 6, 12);
+  g.fillStyle=COL.muted; g.fillText('temps →  (3 dernières secondes)', 6, h-5);
 }
 
 const tbuf=new Float32Array(analyser.fftSize), fbuf=new Float32Array(analyser.frequencyBinCount);
@@ -972,9 +1069,9 @@ function drawScope(cv){
   }
 }
 
-const cvScope=document.getElementById('cv-scope'), cvF=document.getElementById('cv-filt'), cvFE=document.getElementById('cv-fenv'), cvAE=document.getElementById('cv-aenv');
+const cvScope=document.getElementById('cv-scope'), cvF=document.getElementById('cv-filt'), cvFE=document.getElementById('cv-fenv'), cvAE=document.getElementById('cv-aenv'), cvL=document.getElementById('cv-lfo');
 function loop(){
-  drawScope(cvScope); drawFilter(cvF); drawEnv(cvFE,P.filt,COL.filt,'filt'); drawEnv(cvAE,P.amp,COL.amp,'amp');
+  readMod(); drawScope(cvScope); drawFilter(cvF); drawLfo(cvL); drawEnv(cvFE,P.filt,COL.filt,'filt'); drawEnv(cvAE,P.amp,COL.amp,'amp');
   requestAnimationFrame(loop);
 }
 
