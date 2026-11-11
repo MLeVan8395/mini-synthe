@@ -148,7 +148,7 @@ footer{max-width:1240px;margin:0 auto;padding:0 18px;color:var(--muted);font-siz
 .startnote.show{display:inline-block}
 
 /* pas de menu contextuel ni de sélection sur les zones de jeu (appui long) */
-.keyboard, .key, .drawbars, .dbar, .kbwrap{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.keyboard, .key, .drawbars, .dbar, .kbwrap, .slider, .seg, .toggle{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 
 .midibar{max-width:1240px;margin:6px auto 0;padding:0 16px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:13px;color:var(--muted)}
 .midibar button{background:var(--panel2,#22262f);border:1px solid var(--line,#2e333e);color:var(--text,#ece9e2);border-radius:8px;padding:5px 10px;font:inherit;font-size:13px;cursor:pointer}
@@ -157,6 +157,17 @@ footer{max-width:1240px;margin:0 auto;padding:0 18px;color:var(--muted);font-siz
 .midilearn-on{outline:2px dashed #7bd389;outline-offset:3px;border-radius:6px;cursor:pointer}
 .midilearn-sel{outline-style:solid;background:rgba(123,211,137,.1)}
 .midibar button:disabled{opacity:.55;cursor:default}
+.ccbadge{display:inline-block;margin-left:6px;font-family:var(--mono);font-size:10px;font-weight:600;color:#121419;background:#7bd389;border-radius:4px;padding:1px 4px;vertical-align:1px}
+.seg + .ccbadge, .ccbadge + .seg{margin-top:2px}
+.ctxmenu{position:fixed;z-index:50;min-width:220px;max-width:300px;background:var(--panel2);border:1px solid var(--muted);border-radius:10px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,.55)}
+.ctxmenu[hidden]{display:none}
+.ctxmenu .cm-title{font-size:12px;color:var(--muted);padding:4px 8px 6px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.ctxmenu .cm-note{font-size:13px;color:var(--text);padding:6px 8px;line-height:1.4}
+.ctxmenu button{display:block;width:100%;text-align:left;background:none;border:0;color:var(--text);font:inherit;font-size:14px;padding:9px 8px;border-radius:7px;cursor:pointer}
+.ctxmenu button:hover,.ctxmenu button:focus-visible{background:color-mix(in srgb,#7bd389 18%,transparent);outline:none}
+.toast{position:fixed;left:50%;top:10px;transform:translate(-50%,-150%);z-index:40;max-width:min(560px,94vw);background:#7bd389;color:#121419;border-radius:10px;padding:9px 12px;font-size:14px;font-weight:500;box-shadow:0 6px 20px rgba(0,0,0,.5);transition:transform .25s}
+.toast.show{transform:translate(-50%,0)}
+.toast button{margin-left:8px;background:#121419;color:#7bd389;border:0;border-radius:6px;padding:3px 9px;font:inherit;font-size:13px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -1100,15 +1111,37 @@ const H={
   mod:x=>{ if(x>0.01) vibAmt.gain.setTargetAtTime(x*40,ctx.currentTime,.03); else updateFX(); } };
 
 /* ================= CLAVIER MIDI (Web MIDI) ================= */
-const MIDIK={on:false,map:{},learn:0,learnKey:null,access:null};
+// Tout réglage (curseur, choix, interrupteur) peut être relié à un bouton ou fader du contrôleur :
+// clic droit ou appui long sur le réglage → « Affecter à un bouton MIDI », puis tourner le bouton.
+const MIDIK={on:false,map:{},learn:0,learnKey:null,access:null,last:{}};
 try{ const s=JSON.parse(localStorage.getItem('mini-synthe-midi')||'{}'); MIDIK.on=!!s.on; MIDIK.map=s.map||{}; }catch(e){}
 const midiSave=()=>{ try{ localStorage.setItem('mini-synthe-midi',JSON.stringify({on:MIDIK.on,map:MIDIK.map})); }catch(e){} };
-const rangeKey=inp=>inp.id||((inp.closest('[data-path]')||{}).dataset||{}).path||inp.getAttribute('aria-label')||'';
-const rangeByKey=k=>[...document.querySelectorAll('input[type=range]')].find(i=>rangeKey(i)===k);
-const rangeLabel=k=>{ const i=rangeByKey(k); return (i&&(i.getAttribute('aria-label')||i.id))||k; };
+const SEGNAME={wave:"Forme d'onde",'filt.type':'Type de filtre',noiseColor:'Couleur du bruit','mod.dest':'Destination','mod.wave':'Forme','ui.scope':'Affichage'};
+const ctrlEl=k=>[...document.querySelectorAll('.slider[data-path],.seg[data-path],.toggle[data-path]')].find(x=>x.dataset.path===k);
+const ctrlOf=t=>t&&t.closest&&t.closest('.slider[data-path],.seg[data-path],.toggle[data-path]');
+function paramLabel(k){
+  const el=ctrlEl(k); if(!el) return k;
+  const fx=el.closest('.fx'), card=el.closest('.card');
+  let where='';
+  if(fx) where=fx.querySelector('h3').textContent.trim();
+  else if(card){ const h=card.querySelector('h2'), n=h.querySelector('.num'), nt=n?n.textContent.trim():''; where=/^[A-Z]+$/.test(nt)?nt:[...h.childNodes].filter(x=>x!==n).map(x=>x.textContent).join('').trim(); }
+  const what=el.classList.contains('slider')?el.dataset.label:el.classList.contains('toggle')?'marche / arrêt':(SEGNAME[k]||'Choix');
+  return where?where+' · '+what:what;
+}
+const ccOf=k=>Object.keys(MIDIK.map).find(cc=>MIDIK.map[cc]===k);
 function midiCCx(cc,val){
-  if(MIDIK.learn===2&&MIDIK.learnKey){ MIDIK.map[cc]=MIDIK.learnKey; midiSave(); midiLearnStop(); midiRenderMap(); return; }
-  const k=MIDIK.map[cc]; if(k){ const i=rangeByKey(k); if(i){ const mn=+i.min||0, mx=+(i.max||100), st=+i.step||0; let v=mn+(mx-mn)*val/127; if(st) v=Math.round(v/st)*st; i.value=v; i.dispatchEvent(new Event('input',{bubbles:true})); i.dispatchEvent(new Event('change',{bubbles:true})); } return; }
+  if(MIDIK.learn===2&&MIDIK.learnKey){
+    Object.keys(MIDIK.map).forEach(c=>{ if(MIDIK.map[c]===MIDIK.learnKey) delete MIDIK.map[c]; });
+    MIDIK.map[cc]=MIDIK.learnKey; midiSave(); const lab=paramLabel(MIDIK.learnKey); midiLearnStop(); midiRenderMap();
+    toast('✓ Bouton CC '+cc+' relié à « '+lab+' »',2500); return; }
+  const k=MIDIK.map[cc];
+  if(k){ const el=ctrlEl(k); if(!el) return;
+    if(el.classList.contains('slider')){ const i=el.querySelector('input'); i.value=Math.round(val/127*1000); i.dispatchEvent(new Event('input',{bubbles:true})); }
+    else if(el.classList.contains('seg')){ const bs=[...el.querySelectorAll('button')], b=bs[Math.min(bs.length-1,Math.floor(val/128*bs.length))]; if(!b.classList.contains('on')) b.click(); }
+    else { // interrupteur : bouton poussoir (127 puis 0) = bascule ; potard = marche au-delà de la moitié
+      const on=val>=64, prev=MIDIK.last[cc]; MIDIK.last[cc]=val;
+      if(prev===undefined||(prev>=64)!==on){ if(on!==!!getP(k)) el.click(); } }
+    return; }
   if(cc===1&&H.mod) H.mod(val/127); else if(cc===64&&H.sustain) H.sustain(val>=64);
 }
 function midiMsg(e){ const [st,d1,d2]=e.data, ty=st&0xf0, ch=st&0x0f;
@@ -1119,17 +1152,74 @@ function midiMsg(e){ const [st,d1,d2]=e.data, ty=st&0xf0, ch=st&0x0f;
 function midiBind(){ if(!MIDIK.access) return; const n=[]; MIDIK.access.inputs.forEach(i=>{ i.onmidimessage=midiMsg; n.push(i.name); });
   document.getElementById('midiStat').textContent=n.length?'connecté : '+n.join(', '):'aucun clavier détecté'; }
 async function midiEnable(){ const b=document.getElementById('midiBtn');
-  if(!navigator.requestMIDIAccess){ document.getElementById('midiStat').textContent='ce navigateur ne gère pas le MIDI (iPad, iPhone, Safari) : utilise Chrome ou Edge'; return; }
-  try{ MIDIK.access=await navigator.requestMIDIAccess(); MIDIK.on=true; midiSave(); MIDIK.access.onstatechange=midiBind; midiBind(); b.classList.add('on'); b.textContent='🎹 MIDI activé'; document.getElementById('midiLearn').hidden=false; }
-  catch(e){ document.getElementById('midiStat').textContent='accès au MIDI refusé par le navigateur'; } }
-function midiLearnStop(){ MIDIK.learn=0; MIDIK.learnKey=null; document.querySelectorAll('.midilearn-on').forEach(x=>x.classList.remove('midilearn-on','midilearn-sel')); document.getElementById('midiLearn').classList.remove('on'); document.getElementById('midiHint').textContent=''; }
-function midiRenderMap(){ const box=document.getElementById('midiMap'), e=Object.entries(MIDIK.map); box.innerHTML=e.length?'Reliés : '+e.map(([cc,k])=>`CC ${cc} → ${rangeLabel(k)} <button data-cc="${cc}" aria-label="Supprimer">×</button>`).join(' · '):'';
-  box.querySelectorAll('button').forEach(b=>b.onclick=()=>{ delete MIDIK.map[b.dataset.cc]; midiSave(); midiRenderMap(); }); }
+  if(!navigator.requestMIDIAccess){ document.getElementById('midiStat').textContent='ce navigateur ne gère pas le MIDI (iPad, iPhone, Safari) : utilise Chrome ou Edge'; return false; }
+  if(MIDIK.access) return true;
+  try{ MIDIK.access=await navigator.requestMIDIAccess(); MIDIK.on=true; midiSave(); MIDIK.access.onstatechange=midiBind; midiBind(); b.classList.add('on'); b.textContent='🎹 MIDI activé'; document.getElementById('midiLearn').hidden=false; return true; }
+  catch(e){ document.getElementById('midiStat').textContent='accès au MIDI refusé par le navigateur'; return false; } }
+function midiLearnStop(){ MIDIK.learn=0; MIDIK.learnKey=null; document.querySelectorAll('.midilearn-on,.midilearn-sel').forEach(x=>x.classList.remove('midilearn-on','midilearn-sel')); document.getElementById('midiLearn').classList.remove('on'); document.getElementById('midiHint').textContent=''; toast(''); }
+function midiLearnFor(k){
+  midiLearnStop(); const el=ctrlEl(k); if(!el) return;
+  MIDIK.learn=2; MIDIK.learnKey=k; el.classList.add('midilearn-on','midilearn-sel'); document.getElementById('midiLearn').classList.add('on');
+  const msg='« '+paramLabel(k)+' » : tourne maintenant un bouton ou un fader de ton contrôleur…';
+  document.getElementById('midiHint').textContent=msg; toast(msg+' <button type="button" id="toastCancel">Annuler</button>');
+  const c=document.getElementById('toastCancel'); if(c) c.onclick=midiLearnStop;
+}
+function midiRenderMap(){ const box=document.getElementById('midiMap'), e=Object.entries(MIDIK.map).filter(([cc,k])=>ctrlEl(k));
+  box.innerHTML=e.length?'Reliés : '+e.map(([cc,k])=>`CC ${cc} → ${paramLabel(k)} <button data-cc="${cc}" aria-label="Supprimer">×</button>`).join(' · '):'';
+  box.querySelectorAll('button').forEach(b=>b.onclick=()=>{ delete MIDIK.map[b.dataset.cc]; midiSave(); midiRenderMap(); });
+  // petite étiquette « CC 21 » sur chaque réglage relié
+  document.querySelectorAll('.ccbadge').forEach(x=>x.remove());
+  e.forEach(([cc,k])=>{ const el=ctrlEl(k), s=document.createElement('span'); s.className='ccbadge'; s.textContent='CC '+cc; s.title='Relié au bouton MIDI CC '+cc;
+    if(el.classList.contains('slider')) el.querySelector('.sl-top span').appendChild(s);
+    else if(el.classList.contains('toggle')) el.parentElement.querySelector('h3').appendChild(s);
+    else { const l=el.previousElementSibling; if(l&&l.classList.contains('lbl')) l.appendChild(s); else el.insertAdjacentElement('beforebegin',s); } }); }
 document.getElementById('midiBtn').onclick=midiEnable;
 document.getElementById('midiLearn').onclick=()=>{ if(MIDIK.learn){ midiLearnStop(); return; } MIDIK.learn=1; document.getElementById('midiLearn').classList.add('on');
-  document.querySelectorAll('input[type=range]').forEach(i=>(i.closest('.slider')||i.parentElement).classList.add('midilearn-on')); document.getElementById('midiHint').textContent='Touche un curseur, puis tourne un bouton du clavier…'; };
-document.addEventListener('pointerdown',e=>{ if(MIDIK.learn!==1) return; const box=e.target.closest('.midilearn-on'); if(!box) return; const i=box.querySelector('input[type=range]')||(box.matches('input')?box:null); if(!i) return;
-  e.preventDefault(); e.stopPropagation(); MIDIK.learn=2; MIDIK.learnKey=rangeKey(i); box.classList.add('midilearn-sel'); document.getElementById('midiHint').textContent='« '+rangeLabel(MIDIK.learnKey)+' » : tourne maintenant un bouton ou un fader.'; },true);
+  document.querySelectorAll('.slider[data-path],.seg[data-path],.toggle[data-path]').forEach(x=>x.classList.add('midilearn-on')); document.getElementById('midiHint').textContent='Touche un réglage, puis tourne un bouton du contrôleur…'; };
+document.addEventListener('pointerdown',e=>{ if(MIDIK.learn!==1) return; const el=ctrlOf(e.target); if(!el) return;
+  e.preventDefault(); e.stopPropagation(); midiLearnFor(el.dataset.path); },true);
+
+/* bandeau d'information */
+const toastEl=document.createElement('div'); toastEl.className='toast'; toastEl.setAttribute('role','status'); document.body.appendChild(toastEl);
+let toastT=0;
+function toast(html,ms){ clearTimeout(toastT); toastEl.innerHTML=html; toastEl.classList.toggle('show',!!html); if(html&&ms) toastT=setTimeout(()=>toastEl.classList.remove('show'),ms); }
+
+/* menu : clic droit ou appui long sur un réglage */
+const menu=document.createElement('div'); menu.className='ctxmenu'; menu.hidden=true; menu.setAttribute('role','menu'); document.body.appendChild(menu);
+let menuOpenedAt=0;
+function closeMenu(){ menu.hidden=true; }
+function openMenu(el,x,y){
+  const k=el.dataset.path, cc=ccOf(k), ok=!!navigator.requestMIDIAccess;
+  menu.innerHTML=`<div class="cm-title">${paramLabel(k)}</div>`+
+    (ok?`<button type="button" data-a="learn" role="menuitem">🎛️ ${cc?'Changer de bouton MIDI (CC '+cc+')':'Affecter à un bouton MIDI'}</button>`
+       :`<div class="cm-note">Le MIDI ne marche pas sur cet appareil (iPad, iPhone, Safari). Utilise Chrome ou Edge sur ordinateur, ou une tablette Android.</div>`)+
+    (cc?`<button type="button" data-a="unmap" role="menuitem">✕ Retirer le bouton CC ${cc}</button>`:'')+
+    `<button type="button" data-a="close" role="menuitem">Fermer</button>`;
+  menu.hidden=false; menuOpenedAt=performance.now();
+  const r=menu.getBoundingClientRect(), W=window.innerWidth, Hh=window.innerHeight;
+  menu.style.left=Math.max(6,Math.min(x,W-r.width-6))+'px'; menu.style.top=Math.max(6,Math.min(y,Hh-r.height-6))+'px';
+  menu.querySelectorAll('button').forEach(b=>b.onclick=async()=>{ closeMenu();
+    if(b.dataset.a==='learn'){ if(await midiEnable()) midiLearnFor(k); }
+    else if(b.dataset.a==='unmap'){ delete MIDIK.map[cc]; midiSave(); midiRenderMap(); } });
+  const f=menu.querySelector('button'); if(f) f.focus({preventScroll:true});
+}
+document.addEventListener('contextmenu',e=>{ const el=ctrlOf(e.target); if(!el) return; e.preventDefault(); if(lp.fired) return; openMenu(el,e.clientX,e.clientY); });
+// appui long (tablette, téléphone) : 600 ms sans bouger ; le curseur reprend sa valeur d'avant
+const lp={t:0,fired:false};
+document.addEventListener('pointerdown',e=>{ lp.fired=false; clearTimeout(lp.t); if(e.pointerType==='mouse'||MIDIK.learn===1) return;
+  const el=ctrlOf(e.target); if(!el) return;
+  const x0=e.clientX, y0=e.clientY, inp=el.querySelector('input[type=range]'), v0=inp?inp.value:null;
+  const move=ev=>{ if(Math.hypot(ev.clientX-x0,ev.clientY-y0)>10) stop(); };
+  const stop=()=>{ clearTimeout(lp.t); document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',stop); document.removeEventListener('pointercancel',stop); };
+  document.addEventListener('pointermove',move); document.addEventListener('pointerup',stop); document.addEventListener('pointercancel',stop);
+  lp.t=setTimeout(()=>{ stop(); lp.fired=true; if(inp&&inp.value!==v0){ inp.value=v0; inp.dispatchEvent(new Event('input',{bubbles:true})); } if(navigator.vibrate) try{navigator.vibrate(15);}catch(_){} openMenu(el,x0,y0); setTimeout(()=>lp.fired=false,800); },600);
+},true);
+// après un appui long, le doigt qui se lève ne doit pas cliquer sur un bouton de choix
+document.addEventListener('click',e=>{ if(lp.fired&&ctrlOf(e.target)){ e.preventDefault(); e.stopPropagation(); } },true);
+document.addEventListener('pointerdown',e=>{ if(!menu.hidden&&!menu.contains(e.target)) closeMenu(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeMenu(); if(MIDIK.learn) midiLearnStop(); } });
+window.addEventListener('scroll',()=>{ if(performance.now()-menuOpenedAt>400) closeMenu(); },{passive:true});
+
 midiRenderMap(); if(!navigator.requestMIDIAccess){ const b=document.getElementById('midiBtn'); b.disabled=true; b.textContent='🎹 MIDI indisponible ici'; document.getElementById('midiStat').textContent='(iPad, iPhone et Safari ne gèrent pas le MIDI : utilise Chrome ou Edge, ou une tablette Android)'; } else if(MIDIK.on) midiEnable();
 </script>
 </body>

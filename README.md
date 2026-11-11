@@ -48,7 +48,7 @@ Chaque module a une explication **Comprendre** rédigée simplement. Chaque sect
 
 ## Clavier MIDI
 
-Avec Chrome ou Edge (ordinateur) ou Chrome (Android), branche un clavier en USB et touche **🎹 Clavier MIDI** : les touches jouent le synthé, la molette de pitch fait glisser la hauteur (± 2 demi-tons), la molette de modulation dose le vibrato, la pédale de sustain tient les notes. **Apprendre un bouton** relie un potard ou un fader à n'importe quel curseur (coupure, résonance, ADSR…). Pas disponible sur iPad / iPhone (Apple ne le permet pas).
+Avec Chrome ou Edge (ordinateur) ou Chrome (Android), branche un clavier en USB et touche **🎹 Clavier MIDI** : les touches jouent le synthé, la molette de pitch fait glisser la hauteur (± 2 demi-tons), la molette de modulation dose le vibrato, la pédale de sustain tient les notes. Pour relier un potard ou un fader du contrôleur à **n'importe quel réglage** (vitesse du LFO, coupure du filtre, résonance, ADSR, forme d'onde, marche / arrêt d'un effet…) : **clic droit** sur le réglage (ou **appui long** sur une tablette Android), choisis **Affecter à un bouton MIDI**, puis tourne le bouton. Une étiquette « CC 21 » apparaît à côté du réglage ; le même menu permet de changer de bouton ou de le retirer. Les branchements sont gardés d'une séance à l'autre. Sur un choix (forme d'onde, destination du LFO…), le potard passe d'une option à l'autre ; sur un interrupteur, un bouton poussoir allume et éteint l'effet. Pas disponible sur iPad / iPhone (Apple ne le permet pas).
 
 ## Licences
 
