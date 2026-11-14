@@ -3,6 +3,7 @@
 #pragma once
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "SynthVoice.h"
+#include <array>
 
 class MiniSynthProcessor : public juce::AudioProcessor
 {
@@ -34,6 +35,13 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
     juce::AudioProcessorValueTreeState apvts;
+
+    // Pour l'interface : clavier à l'écran, derniers instants du son, voix la plus récente
+    juce::MidiKeyboardState keyboardState;
+    static constexpr int scopeSize = 8192;
+    std::array<float, scopeSize> scopeBuffer {};
+    std::atomic<int> scopeWrite { 0 };
+    MiniVoice* latestVoice() const;
 
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();

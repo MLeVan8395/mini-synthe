@@ -32,7 +32,16 @@ struct MiniSound : public juce::SynthesiserSound
 class MiniVoice : public juce::SynthesiserVoice
 {
 public:
+    // Pour l'écran de l'interface : état de la voix, lu par la fenêtre du plugin
+    std::atomic<float> vizAmp { 0.0f }, vizFilt { 0.0f };
+    std::atomic<double> vizAge { 0.0 }, vizRelAge { 0.0 };
+    std::atomic<bool> vizReleased { false }, vizActive { false };
+    std::atomic<int> vizNote { -1 };
+    std::atomic<unsigned> vizSerial { 0 };
+    inline static std::atomic<unsigned> serialCounter { 0 };
+
     explicit MiniVoice (const VoiceParams& p) : P (p) {}
+    using juce::SynthesiserVoice::renderNextBlock;
 
     void prepare (double sampleRate, int maxBlock)
     {
@@ -56,13 +65,14 @@ public:
         updateEnvelopes();
         ampEnv.reset();  filtEnv.reset();
         ampEnv.noteOn(); filtEnv.noteOn();
-        counter = 0;
+        counter = 0; ageSamples = 0; relSamples = 0;
+        vizNote = midiNote; vizReleased = false; vizActive = true; vizSerial = ++serialCounter;
     }
 
     void stopNote (float, bool allowTailOff) override
     {
-        if (allowTailOff) { ampEnv.noteOff(); filtEnv.noteOff(); }
-        else { ampEnv.reset(); filtEnv.reset(); clearCurrentNote(); }
+        if (allowTailOff) { ampEnv.noteOff(); filtEnv.noteOff(); vizReleased = true; relSamples = 0; }
+        else { ampEnv.reset(); filtEnv.reset(); clearCurrentNote(); vizActive = false; }
     }
 
     void pitchWheelMoved (int value) override { bend = (value - 8192) / 8192.0 * 2.0; } // ± 2 demi-tons
@@ -89,11 +99,12 @@ public:
         filter.setResonance (q);
         const float bpGain = type == 2 ? 1.0f / q : 1.0f;   // passe-bande ramené à 0 dB, comme sur le web
         const float maxFc = (float) juce::jmin (20000.0, sr * 0.45);
+        float fe = 0.0f, ae = 0.0f;
 
         for (int i = 0; i < num; ++i)
         {
-            const float fe = filtEnv.getNextSample();
-            const float ae = ampEnv.getNextSample();
+            fe = filtEnv.getNextSample();
+            ae = ampEnv.getNextSample();
 
             if ((counter++ & 7) == 0)
                 filter.setCutoffFrequency (juce::jlimit (20.0f, maxFc, cutoff * std::pow (2.0f, amount * fe)));
@@ -105,8 +116,10 @@ public:
             for (int ch = 0; ch < out.getNumChannels(); ++ch)
                 out.addSample (ch, start + i, y);
 
-            if (! ampEnv.isActive()) { clearCurrentNote(); filter.reset(); break; }
+            if (! ampEnv.isActive()) { clearCurrentNote(); filter.reset(); vizActive = false; break; }
         }
+        ageSamples += num; if (vizReleased.load()) relSamples += num;
+        vizAmp = ae; vizFilt = fe; vizAge = ageSamples / sr; vizRelAge = relSamples / sr;
     }
 
 private:
@@ -114,6 +127,7 @@ private:
     double sr = 48000.0, phase = 0.0, bend = 0.0;
     int note = 60;
     unsigned counter = 0;
+    juce::int64 ageSamples = 0, relSamples = 0;
     static constexpr float peak = 0.22f;   // volume d'une voix (comme la version web)
     juce::ADSR ampEnv, filtEnv;
     juce::dsp::StateVariableTPTFilter<float> filter;

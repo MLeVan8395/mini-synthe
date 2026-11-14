@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mini-synthé pédagogique</title>
+<!-- Interface du plugin VST3. © 2026 Mickael Le Van – tous droits réservés -->
+<style>
+:root{
+  --bg:#121419; --panel:#1b1e26; --panel2:#22262f; --line:#2e333e; --text:#ece9e2; --muted:#9aa1ad;
+  --osc:#f5a623; --noise:#a9bcd0; --filt:#2ec4b6; --amp:#7bd389; --fx:#c792ea; --out:#ff6b6b; --lfo:#6cb6ff;
+  --mono:Consolas,'Cascadia Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
+body{padding-bottom:190px}
+header{padding:20px 18px 6px;max-width:1240px;margin:0 auto}
+h1{font-size:clamp(22px,4vw,32px);margin:0 0 4px;letter-spacing:-.01em}
+h1 span{color:var(--osc)}
+.htop{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+#install{background:var(--osc);color:#121419;border:0;border-radius:9px;padding:8px 12px;font:inherit;font-weight:600;font-size:14px;cursor:pointer;white-space:nowrap}
+.lead{color:var(--muted);margin:0;max-width:760px;line-height:1.45;font-size:15px}
+main{max-width:1240px;margin:0 auto;padding:10px 14px 30px}
+
+/* flux du signal */
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:14px 0 6px}
+.flow .src{display:flex;flex-direction:column;gap:4px}
+.chip{border:1px solid var(--c);color:var(--c);background:color-mix(in srgb,var(--c) 10%,transparent);border-radius:999px;padding:5px 11px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;transition:opacity .2s,filter .2s;font-family:inherit}
+.chip small{display:block;font-size:10px;opacity:.75;font-weight:400}
+.chip.off{opacity:.35;filter:grayscale(.6)}
+.arrow{color:var(--muted);font-size:15px}
+
+/* presets */
+.presets{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:12px 0}
+.presets h2{font-size:14px;margin:0 0 8px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.08em}
+.pbtns{display:flex;flex-wrap:wrap;gap:6px}
+.pbtn{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:7px 11px;font:inherit;font-size:14px;cursor:pointer}
+.pbtn:hover{border-color:var(--muted)}
+.pbtn.on{border-color:var(--osc);color:var(--osc)}
+.pdesc{margin:10px 0 0;font-size:14px;color:var(--muted);line-height:1.45;min-height:1.4em}
+.pdesc b{color:var(--text)}
+
+/* grille */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:12px}
+.card{--c:var(--osc);background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--c);border-radius:14px;padding:14px 14px 12px;scroll-margin-top:12px}
+.card h2{margin:0 0 2px;font-size:17px;display:flex;align-items:center;gap:8px}
+.card h2 .num{font-family:var(--mono);font-size:11px;color:var(--bg);background:var(--c);border-radius:5px;padding:2px 6px}
+.card .sub{color:var(--muted);font-size:13px;margin:0 0 10px}
+.wide{grid-column:1/-1}
+
+/* curseurs */
+.slider{margin:9px 0}
+.sl-top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px}
+.sl-top output{font-family:var(--mono);color:var(--c);font-size:12px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:26px;background:transparent;margin:0;touch-action:pan-y}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:linear-gradient(90deg,var(--c) var(--p,50%),var(--line) var(--p,50%))}
+input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:linear-gradient(90deg,var(--c) var(--p,50%),var(--line) var(--p,50%))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--text);margin-top:-6px;border:3px solid var(--c)}
+input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--text);border:3px solid var(--c)}
+input[type=range]:focus-visible{outline:2px solid var(--c);outline-offset:2px;border-radius:4px}
+
+.seg{display:flex;gap:5px;flex-wrap:wrap;margin:4px 0 6px}
+.seg button{flex:1;min-width:64px;background:var(--panel2);border:1px solid var(--line);color:var(--muted);border-radius:9px;padding:6px 4px;font:inherit;font-size:12px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.seg button svg{width:30px;height:20px}
+.seg button.on{border-color:var(--c);color:var(--c);background:color-mix(in srgb,var(--c) 12%,transparent)}
+.lbl{font-size:13px;color:var(--muted);margin:8px 0 2px}
+
+canvas{display:block;width:100%;background:#0d0f13;border:1px solid var(--line);border-radius:10px}
+.cv-env{height:110px;margin:4px 0 6px}
+.cv-filt{height:120px;margin:4px 0 6px}
+.cv-scope{height:170px}
+.cv-lfo{height:92px;margin:4px 0 6px}
+
+.two{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+
+details.help{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px}
+details.help summary{cursor:pointer;color:var(--c);font-size:13px;font-weight:500;list-style:none}
+details.help summary::before{content:'＋ '}
+details.help[open] summary::before{content:'－ '}
+details.help p,details.help li{font-size:14px;line-height:1.5;color:#cfd3da}
+details.help ul{padding-left:18px;margin:6px 0}
+details.help b{color:var(--text)}
+
+/* effets */
+.fx{background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin-top:10px}
+.fx-head{display:flex;justify-content:space-between;align-items:center}
+.fx-head h3{margin:0;font-size:15px}
+.toggle{width:50px;height:28px;border-radius:999px;border:1px solid var(--line);background:#0d0f13;position:relative;cursor:pointer;padding:0}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--muted);transition:transform .2s,background .2s}
+.toggle[aria-pressed=true]{border-color:var(--c);background:color-mix(in srgb,var(--c) 25%,#0d0f13)}
+.toggle[aria-pressed=true]::after{transform:translateX(22px);background:var(--c)}
+.fx.disabled .slider{opacity:.45}
+.fxgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:0 12px}
+
+.scopebar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.readout{font-family:var(--mono);font-size:14px}
+.readout b{color:var(--out);font-size:18px}
+.smallseg button{min-width:auto;padding:5px 10px;flex:none;font-size:13px}
+
+/* clavier */
+.kbwrap{position:fixed;left:0;right:0;bottom:0;background:linear-gradient(180deg,rgba(18,20,25,.88),#121419 30%);backdrop-filter:blur(6px);border-top:1px solid var(--line);padding:8px 10px calc(10px + env(safe-area-inset-bottom));z-index:10}
+.kbbar{max-width:1240px;margin:0 auto 6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.kbbar button{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:5px 11px;font:inherit;font-size:13px;cursor:pointer}
+.kbbar button.on{border-color:var(--amp);color:var(--amp)}
+.kbbar .hint{margin-left:auto}
+@media (hover:none){.kbbar .hint,.key .ck{display:none}}
+.keyboard{position:relative;max-width:1240px;margin:0 auto;height:130px;display:flex;touch-action:none;user-select:none;-webkit-user-select:none}
+.key{position:relative;flex:1;background:linear-gradient(#f4f1ea,#ddd8cd);border:1px solid #0d0f13;border-radius:0 0 7px 7px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding-bottom:6px;color:#3b3f48;font-size:11px;cursor:pointer}
+.key.black{position:absolute;top:0;height:60%;background:linear-gradient(#2b2f38,#0d0f13);color:#aab;z-index:2;border-radius:0 0 5px 5px;font-size:10px}
+.key.down{background:var(--osc)!important;color:#121419}
+.key .ck{font-family:var(--mono);font-size:10px;opacity:.55;margin-bottom:2px}
+.key .nm{font-weight:600}
+/* volets */
+.foldable{cursor:pointer;user-select:none}
+.foldable::after{content:'▾';margin-left:auto;color:var(--muted);font-size:14px;transition:transform .2s}
+.card h2.foldable{width:100%}
+.folded .foldable::after{transform:rotate(-90deg)}
+.card.folded > :not(.fold-keep){display:none}
+.card.folded{padding-bottom:12px}
+.fx-head h3.foldable{display:flex;align-items:center;gap:8px;flex:1;padding:4px 10px 4px 0}
+.fx.folded > :not(.fx-head){display:none}
+.fx.folded{padding-bottom:10px}
+/* tirettes */
+.drawnote{font-size:13px;color:var(--osc);margin:0 0 6px}
+.drawnote[hidden]{display:none}
+.drawbars{user-select:none;-webkit-user-select:none;display:grid;grid-template-columns:repeat(9,1fr);gap:5px;background:#0d0f13;border:1px solid var(--line);border-radius:10px;padding:8px 6px 6px}
+.dbar{display:flex;flex-direction:column;align-items:center;touch-action:none;cursor:ns-resize;outline:none}
+.dbar .ft{font-family:var(--mono);font-size:11px;color:var(--text);margin-bottom:4px}
+.dbar .track{position:relative;width:100%;max-width:34px;height:170px;border-radius:4px;background:repeating-linear-gradient(180deg,#1b1e26 0 18px,#262a34 18px 19px)}
+.dbar .rod{position:absolute;left:18%;right:18%;top:0;background:linear-gradient(90deg,#666,#999,#666)}
+.dbar .cap{position:absolute;left:0;right:0;height:30px;border-radius:4px 4px 6px 6px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;font-family:var(--mono);font-weight:600;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,.5)}
+.dbar.brown .cap{background:linear-gradient(#a0683a,#6e4321);color:#f4e9dc}
+.dbar.white .cap{background:linear-gradient(#f4f1ea,#cfc9bc);color:#222}
+.dbar.black .cap{background:linear-gradient(#3a3e48,#121419);color:#eee;border:1px solid #444}
+.dbar .nt{font-size:10px;color:var(--muted);margin-top:4px;text-align:center;line-height:1.2}
+.dbar:focus-visible .track{outline:2px solid var(--osc);outline-offset:2px}
+.drawbars.inactive{opacity:.55}
+.regline{display:flex;align-items:center;gap:8px;margin-top:10px}
+.regcode{font-family:var(--mono);font-size:16px;color:var(--osc);letter-spacing:.05em}
+footer{max-width:1240px;margin:0 auto;padding:0 18px;color:var(--muted);font-size:12px}
+.startnote{display:none;background:var(--osc);color:#121419;border-radius:8px;padding:6px 10px;font-weight:600}
+.startnote.show{display:inline-block}
+
+/* pas de menu contextuel ni de sélection sur les zones de jeu (appui long) */
+.keyboard, .key, .drawbars, .dbar, .kbwrap, .slider, .seg, .toggle{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+
+.midibar{max-width:1240px;margin:6px auto 0;padding:0 16px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:13px;color:var(--muted)}
+.midibar button{background:var(--panel2,#22262f);border:1px solid var(--line,#2e333e);color:var(--text,#ece9e2);border-radius:8px;padding:5px 10px;font:inherit;font-size:13px;cursor:pointer}
+.midibar button.on{border-color:#7bd389;color:#7bd389}
+#midiMap button{padding:0 6px;margin-left:3px}
+.midilearn-on{outline:2px dashed #7bd389;outline-offset:3px;border-radius:6px;cursor:pointer}
+.midilearn-sel{outline-style:solid;background:rgba(123,211,137,.1)}
+.midibar button:disabled{opacity:.55;cursor:default}
+.ccbadge{display:inline-block;margin-left:6px;font-family:var(--mono);font-size:10px;font-weight:600;color:#121419;background:#7bd389;border-radius:4px;padding:1px 4px;vertical-align:1px}
+.seg + .ccbadge, .ccbadge + .seg{margin-top:2px}
+.ctxmenu{position:fixed;z-index:50;min-width:220px;max-width:300px;background:var(--panel2);border:1px solid var(--muted);border-radius:10px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,.55)}
+.ctxmenu[hidden]{display:none}
+.ctxmenu .cm-title{font-size:12px;color:var(--muted);padding:4px 8px 6px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.ctxmenu .cm-note{font-size:13px;color:var(--text);padding:6px 8px;line-height:1.4}
+.ctxmenu button{display:block;width:100%;text-align:left;background:none;border:0;color:var(--text);font:inherit;font-size:14px;padding:9px 8px;border-radius:7px;cursor:pointer}
+.ctxmenu button:hover,.ctxmenu button:focus-visible{background:color-mix(in srgb,#7bd389 18%,transparent);outline:none}
+.toast{position:fixed;left:50%;top:10px;transform:translate(-50%,-150%);z-index:40;max-width:min(560px,94vw);background:#7bd389;color:#121419;border-radius:10px;padding:9px 12px;font-size:14px;font-weight:500;box-shadow:0 6px 20px rgba(0,0,0,.5);transition:transform .25s}
+.toast.show{transform:translate(-50%,0)}
+.toast button{margin-left:8px;background:#121419;color:#7bd389;border:0;border-radius:6px;padding:3px 9px;font:inherit;font-size:13px;cursor:pointer}
+
+body{padding-bottom:180px}
+#nobackend{background:#ff6b6b;color:#121419;padding:8px 12px;border-radius:8px;margin:8px 0;font-weight:600}
+#nobackend[hidden]{display:none}
+.vnote{color:var(--muted);font-size:12px;margin:2px 0 0}
+</style>
+</head>
+<body>
+<header>
+  <div class="htop"><h1>Mini-synthé <span>pédagogique</span></h1></div>
+  <p class="lead">Suis le parcours du son : une <b>source</b> (oscillateur, bruit) produit un son riche, le <b>filtre</b> le sculpte, l'<b>ampli</b> lui donne sa forme dans le temps. Joue avec ton clavier MIDI ou sur le clavier en bas, et observe l'écran.</p>
+  <p id="nobackend" hidden>Cette page est l'interface du plugin : ouverte seule, elle ne fait pas de son.</p>
+</header>
+<main>
+  <nav class="flow" aria-label="Parcours du signal">
+    <div class="src">
+      <button class="chip" style="--c:var(--osc)" data-go="m-osc" id="ch-osc">Oscillateur</button>
+      <button class="chip" style="--c:var(--noise)" data-go="m-osc" id="ch-noise">Bruit</button>
+    </div>
+    <span class="arrow">→</span>
+    <button class="chip" style="--c:var(--filt)" data-go="m-filt">Filtre<small>+ enveloppe</small></button>
+    <span class="arrow">→</span>
+    <button class="chip" style="--c:var(--amp)" data-go="m-amp">Ampli<small>+ enveloppe</small></button>
+    <span class="arrow">→</span>
+    <button class="chip" style="--c:var(--out)" data-go="m-out">Sortie</button>
+  </nav>
+  <section class="presets" aria-label="Sons de départ">
+    <h2>Sons de départ</h2>
+    <div class="pbtns" id="presets"></div>
+    <p class="pdesc" id="pdesc"></p>
+  </section>
+  <div class="grid">
+    <!-- SORTIE / ÉCRAN -->
+    <section class="card wide" id="m-out" style="--c:var(--out)">
+      <div class="scopebar">
+        <h2 style="margin:0"><span class="num">écran</span> Ce que tu entends</h2>
+        <div class="seg smallseg" data-path="uiScope" style="--c:var(--out);margin:0">
+          <button data-val="wave">Forme d'onde</button>
+          <button data-val="spec">Spectre</button>
+        </div>
+      </div>
+      <canvas class="cv-scope" id="cv-scope"></canvas>
+      <div class="scopebar" style="margin:8px 0 0">
+        <div class="readout" id="readout">Joue une note…</div>
+        
+      </div>
+      <div class="slider" data-path="master" data-label="Volume général" data-min="0" data-max="1" data-fmt="pct"></div>
+      <details class="help"><summary>Comprendre l'écran</summary>
+        <p><b>Forme d'onde</b> : la vibration vue dans le temps (zoom automatique, environ trois périodes). Plus la note est aiguë, plus les vagues sont serrées.</p>
+        <p><b>Spectre</b> : le même son vu en fréquences, des graves (à gauche) aux aigus (à droite). Chaque pic est une <b>harmonique</b>. Le premier pic est la note jouée (la fondamentale) ; les autres font le <b>timbre</b>. Ferme le filtre et regarde les pics de droite disparaître.</p>
+      </details>
+    </section>
+
+    <!-- OSCILLATEUR + BRUIT -->
+    <section class="card" id="m-osc" style="--c:var(--osc)">
+      <h2><span class="num">1</span> Oscillateur</h2>
+      <p class="sub">La source : elle vibre à la hauteur de la note.</p>
+      <div class="lbl">Forme d'onde</div>
+      <div class="seg" data-path="wave">
+        <button data-val="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12 C5 2,9 2,12 12 S19 22,22 12"/></svg>Sinus</button>
+        <button data-val="1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12 L7 4 L17 20 L22 12"/></svg>Triangle</button>
+        <button data-val="2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 18 L12 6 L12 18 L22 6 L22 18"/></svg>Dent de scie</button>
+        <button data-val="3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 18 L2 6 L12 6 L12 18 L22 18 L22 6"/></svg>Carré</button>
+      </div>
+      <div class="slider" data-path="oscLevel" data-label="Niveau de l'oscillateur" data-min="0" data-max="1" data-fmt="pct"></div>
+      <div class="slider" data-path="detune" data-label="Accord fin" data-min="-100" data-max="100" data-step="1" data-fmt="cents"></div>
+
+      <div style="--c:var(--noise)">
+        <div class="lbl" style="margin-top:14px">Générateur de bruit</div>
+        <div class="seg" data-path="noiseColor">
+          <button data-val="0">Bruit blanc</button>
+          <button data-val="1">Bruit rose</button>
+        </div>
+        <div class="slider" data-path="noiseLevel" data-label="Niveau du bruit" data-min="0" data-max="1" data-fmt="pct"></div>
+      </div>
+      <details class="help"><summary>Comprendre</summary>
+        <p>L'oscillateur vibre à la fréquence de la note (La3 = 440 Hz). Sa <b>forme d'onde</b> donne le timbre de départ :</p>
+        <ul>
+          <li><b>Sinus</b> : son pur, une seule fréquence, sans harmoniques (sifflement, flûte douce).</li>
+          <li><b>Triangle</b> : doux, quelques harmoniques impaires faibles.</li>
+          <li><b>Dent de scie</b> : brillant, toutes les harmoniques (cordes, cuivres, basses synthé).</li>
+          <li><b>Carré</b> : creux, seulement les harmoniques impaires (clarinette, sons de jeux vidéo 8 bits).</li>
+        </ul>
+        <p>Le <b>bruit</b> ne fait pas de note : il contient toutes les fréquences au hasard. <b>Blanc</b> = « chhh » brillant ; <b>rose</b> = plus de graves, plus doux (vent, mer). On s'en sert pour les percussions et les souffles. Mélange-le un peu à l'oscillateur pour un son « soufflé ».</p>
+      </details>
+    </section>
+
+    <!-- FILTRE -->
+    <section class="card" id="m-filt" style="--c:var(--filt)">
+      <h2><span class="num">2</span> Filtre</h2>
+      <p class="sub">Il retire des fréquences : c'est la synthèse soustractive.</p>
+      <div class="seg" data-path="filtType">
+        <button data-val="0">Passe-bas</button>
+        <button data-val="1">Passe-haut</button>
+        <button data-val="2">Passe-bande</button>
+      </div>
+      <canvas class="cv-filt" id="cv-filt"></canvas>
+      <div class="slider" data-path="cutoff" data-label="Fréquence de coupure" data-min="40" data-max="18000" data-scale="log" data-fmt="hz"></div>
+      <div class="slider" data-path="res" data-label="Résonance" data-min="0" data-max="1" data-fmt="pct"></div>
+
+      <div class="lbl" style="margin-top:12px">Enveloppe du filtre (ADSR)</div>
+      <canvas class="cv-env" id="cv-fenv"></canvas>
+      <div class="slider" data-path="envAmount" data-label="Quantité d'enveloppe" data-min="-4" data-max="6" data-step="0.1" data-fmt="oct"></div>
+      <div class="two">
+        <div class="slider" data-path="fA" data-label="A · Attaque" data-min="0.001" data-max="4" data-scale="log" data-fmt="s"></div>
+        <div class="slider" data-path="fD" data-label="D · Déclin" data-min="0.005" data-max="4" data-scale="log" data-fmt="s"></div>
+        <div class="slider" data-path="fS" data-label="S · Maintien" data-min="0" data-max="1" data-fmt="pct"></div>
+        <div class="slider" data-path="fR" data-label="R · Relâchement" data-min="0.005" data-max="6" data-scale="log" data-fmt="s"></div>
+      </div>
+      <details class="help"><summary>Comprendre</summary>
+        <ul>
+          <li><b>Passe-bas</b> : garde les graves, coupe les aigus. Le son s'assombrit, comme derrière une porte.</li>
+          <li><b>Passe-haut</b> : l'inverse, le son devient fin et léger.</li>
+          <li><b>Passe-bande</b> : ne garde qu'une zone, comme un vieux téléphone.</li>
+          <li><b>Fréquence de coupure</b> : l'endroit où le filtre commence à couper (le trait vertical sur le graphique).</li>
+          <li><b>Résonance</b> : renforce les fréquences autour de la coupure. Son nasal, « wah », voire sifflement.</li>
+        </ul>
+        <p>L'<b>enveloppe du filtre</b> fait bouger la coupure à chaque note : le filtre s'ouvre (attaque), se referme un peu (déclin), reste ouvert d'une certaine quantité (maintien) puis revient à sa place quand on lâche la touche (relâchement). La <b>quantité</b> dit de combien d'octaves il s'ouvre (en négatif, il se ferme). C'est le « wow » d'une basse synthé. Regarde le graphique bouger pendant que tu joues.</p>
+      </details>
+    </section>
+
+    <!-- AMPLI -->
+    <section class="card" id="m-amp" style="--c:var(--amp)">
+      <h2><span class="num">3</span> Ampli et enveloppe</h2>
+      <p class="sub">Comment le volume évolue dans le temps, de l'appui au lâcher.</p>
+      <canvas class="cv-env" id="cv-aenv" style="height:140px"></canvas>
+      <div class="two">
+        <div class="slider" data-path="aA" data-label="A · Attaque" data-min="0.001" data-max="4" data-scale="log" data-fmt="s"></div>
+        <div class="slider" data-path="aD" data-label="D · Déclin" data-min="0.005" data-max="4" data-scale="log" data-fmt="s"></div>
+        <div class="slider" data-path="aS" data-label="S · Maintien" data-min="0" data-max="1" data-fmt="pct"></div>
+        <div class="slider" data-path="aR" data-label="R · Relâchement" data-min="0.005" data-max="6" data-scale="log" data-fmt="s"></div>
+      </div>
+      <details class="help" open><summary>Comprendre l'ADSR</summary>
+        <ul>
+          <li><b>A – Attaque</b> : temps pour monter au volume maximum quand on appuie.</li>
+          <li><b>D – Déclin</b> : temps pour redescendre jusqu'au niveau de maintien.</li>
+          <li><b>S – Maintien</b> (sustain) : le volume tant que la touche reste enfoncée. Attention, c'est un <b>niveau</b>, pas un temps !</li>
+          <li><b>R – Relâchement</b> : temps pour s'éteindre après avoir lâché la touche.</li>
+        </ul>
+        <p>Quelques modèles : <b>orgue</b> = attaque courte, maintien à fond ; <b>guitare ou piano</b> = attaque très courte, maintien à 0, le son meurt tout seul ; <b>nappe (pad)</b> = attaque et relâchement longs ; <b>violon joué doucement</b> = attaque moyenne.</p>
+      </details>
+    </section>
+
+  </div>
+</main>
+<footer><p>Mini-synthé pédagogique · plugin VST3 · © 2026 Mickael Le Van – tous droits réservés · version en ligne : mlevan8395.github.io/mini-synthe</p></footer>
+<div class="kbwrap">
+  <div class="kbbar">
+    <button id="octDown" aria-label="Octave plus grave">◀ Oct.</button>
+    <span id="octLbl"></span>
+    <button id="octUp" aria-label="Octave plus aiguë">Oct. ▶</button>
+    <button id="holdBtn" aria-pressed="false">Tenir les notes</button>
+  </div>
+  <div class="keyboard" id="keyboard" aria-label="Clavier de piano"></div>
+</div>
+<script>
+/* Mini-synthé pédagogique — interface du plugin VST3
+   © 2026 Mickael Le Van – tous droits réservés
+   Les curseurs pilotent le moteur du plugin ; l'écran montre le son que le plugin produit vraiment. */
+const B = (window.__JUCE__ && window.__JUCE__.backend) || null;
+const emit = (ev, data) => { if (B) B.emitEvent(ev, data); };
+const on = (ev, fn) => { if (B) B.addEventListener(ev, fn); };
+
+/* ---------- réglages (mêmes noms que dans le plugin) ---------- */
+const P = { wave:2, oscLevel:0.8, detune:0, noiseColor:0, noiseLevel:0, filtType:0, cutoff:2500, res:0.15, envAmount:1.5,
+            fA:0.01, fD:0.4, fS:0.4, fR:0.4, aA:0.01, aD:0.3, aS:0.7, aR:0.4, master:0.7, uiScope:'wave' };
+const getP = k => P[k];
+
+const dec = (v,k) => v.toLocaleString('fr-FR',{maximumFractionDigits:k});
+const FMT = {
+  hz: v => v>=1000 ? dec(v/1000,1)+' kHz' : Math.round(v)+' Hz',
+  s: v => v<1 ? Math.round(v*1000)+' ms' : dec(v,2)+' s',
+  pct: v => Math.round(v*100)+' %',
+  oct: v => (v>0?'+':'')+v.toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})+' oct.',
+  cents: v => (v>0?'+':'')+Math.round(v)+' cents',
+};
+const refreshers = [];
+let dragging = null;
+
+document.querySelectorAll('.slider').forEach(el => {
+  const d=el.dataset, min=+d.min, max=+d.max, log=d.scale==='log', step=d.step?+d.step:0;
+  const toV=x=>{ let v=log? min*Math.pow(max/min,x) : min+(max-min)*x; if(step) v=Math.round(v/step)*step; return +v.toFixed(5); };
+  const toX=v=> log? Math.log(v/min)/Math.log(max/min) : (v-min)/(max-min);
+  el.innerHTML=`<div class="sl-top"><span>${d.label}</span><output></output></div><input type="range" min="0" max="1000" step="1" aria-label="${d.label}">`;
+  const inp=el.querySelector('input'), out=el.querySelector('output');
+  const paint=()=>inp.style.setProperty('--p',(inp.value/10)+'%');
+  refreshers.push(()=>{ if(dragging===d.path) return; const v=getP(d.path); inp.value=Math.round(Math.min(1,Math.max(0,toX(v)))*1000); out.textContent=FMT[d.fmt](v); paint(); });
+  const start=()=>{ if(dragging!==d.path){ dragging=d.path; emit('gesture',{id:d.path,start:true}); } };
+  const end=()=>{ if(dragging===d.path){ emit('gesture',{id:d.path,start:false}); dragging=null; } };
+  inp.addEventListener('pointerdown',start); inp.addEventListener('keydown',start);
+  inp.addEventListener('pointerup',end); inp.addEventListener('pointercancel',end); inp.addEventListener('keyup',end); inp.addEventListener('blur',end);
+  inp.addEventListener('input',()=>{ start(); const v=toV(inp.value/1000); P[d.path]=v; out.textContent=FMT[d.fmt](v); paint(); emit('set',{id:d.path,value:v}); clearPreset(); });
+});
+document.querySelectorAll('.seg[data-path]').forEach(seg => {
+  const path=seg.dataset.path, btns=[...seg.querySelectorAll('button')];
+  const val=b=>path==='uiScope'?b.dataset.val:+b.dataset.val;
+  refreshers.push(()=>btns.forEach(b=>b.classList.toggle('on', val(b)===getP(path))));
+  btns.forEach(b=>b.addEventListener('click',()=>{
+    P[path]=val(b); btns.forEach(x=>x.classList.toggle('on',x===b)); updateFlow();
+    if(path!=='uiScope'){ emit('gesture',{id:path,start:true}); emit('set',{id:path,value:P[path]}); emit('gesture',{id:path,start:false}); clearPreset(); }
+  }));
+});
+function refreshAll(){ refreshers.forEach(f=>f()); updateFlow(); }
+function updateFlow(){
+  document.getElementById('ch-osc').classList.toggle('off', P.oscLevel<0.01);
+  document.getElementById('ch-noise').classList.toggle('off', P.noiseLevel<0.01);
+}
+document.querySelectorAll('[data-go]').forEach(c=>c.addEventListener('click',()=>document.getElementById(c.dataset.go).scrollIntoView({behavior:'smooth',block:'start'})));
+
+/* ---------- sons de départ (ceux du plugin) ---------- */
+const PDESC = {
+  'Init (dent de scie)':'<b>Le son de base</b> : dent de scie, filtre un peu ouvert. Le point de départ pour fabriquer ton propre son.',
+  'Son pur':'<b>Sinus sans filtre</b> : une seule fréquence, aucune harmonique. Passe sur « Spectre » : un seul pic ! Puis essaie les autres formes d\'onde.',
+  'Orgue':'<b>Carré, enveloppe « interrupteur »</b> : le son démarre net, reste au même volume et s\'arrête net. Rien ne bouge dans le temps.',
+  'Basse synthé':'<b>Dent de scie + filtre résonant + enveloppe de filtre rapide</b> : le filtre s\'ouvre d\'un coup puis se referme. Joue dans le grave.',
+  'Son pincé':'<b>Maintien à 0</b> : le son meurt tout seul même si tu gardes la touche, comme une corde pincée.',
+  'Cuivre':'<b>Attaque de filtre un peu lente</b> : le son « s\'ouvre » comme un souffle dans une trompette.',
+  'Nappe (pad)':'<b>Attaque et relâchement longs</b> : un son qui arrive doucement et s\'efface lentement. Active « Tenir les notes » et pose un accord.',
+  'Charleston':'<b>Bruit blanc seul + passe-haut + enveloppe très courte</b> : une percussion sans hauteur, comme un hi-hat. La touche jouée ne change rien… pourquoi ?',
+  'Vent':'<b>Bruit rose + passe-bande résonant</b> : bouge la fréquence de coupure lentement pendant que tu tiens une note, le vent souffle.',
+};
+const pbox=document.getElementById('presets'), pdesc=document.getElementById('pdesc');
+const DEFAULT_DESC='Choisis un son de départ, écoute-le, puis bouge <b>un seul réglage à la fois</b> pour entendre ce qu\'il change.';
+let presetNames=[];
+function buildPresets(names, current){
+  presetNames=names; pbox.innerHTML='';
+  names.forEach((n,i)=>{ const b=document.createElement('button'); b.className='pbtn'; b.textContent=n;
+    b.addEventListener('click',()=>{ emit('program',{index:i}); document.querySelectorAll('.pbtn').forEach(x=>x.classList.toggle('on',x===b)); pdesc.innerHTML=PDESC[n]||''; });
+    pbox.appendChild(b); });
+}
+function clearPreset(){ document.querySelectorAll('.pbtn.on').forEach(b=>b.classList.remove('on')); }
+pdesc.innerHTML=DEFAULT_DESC;
+
+/* ---------- clavier à l'écran ---------- */
+const NAMES=['Do','Do♯','Ré','Ré♯','Mi','Fa','Fa♯','Sol','Sol♯','La','La♯','Si'];
+const noteName = m => NAMES[m%12]+(Math.floor(m/12)-2);
+const kb=document.getElementById('keyboard');
+let base=48, nOct=2, hold=false; const held=new Set(); let hostKeys=new Set();
+function noteOn(m){ held.add(m); emit('note',{n:m,on:true}); paintKeys(); }
+function noteOff(m){ if(!held.has(m)) return; held.delete(m); emit('note',{n:m,on:false}); paintKeys(); }
+function buildKeyboard(){
+  nOct = window.innerWidth<640 ? 1 : 2;
+  kb.innerHTML='';
+  const whites=[]; for(let m=base;m<=base+12*nOct;m++) if(![1,3,6,8,10].includes(m%12)) whites.push(m);
+  const W=100/whites.length;
+  whites.forEach((m,i)=>{
+    const k=document.createElement('div'); k.className='key'; k.dataset.midi=m;
+    k.innerHTML=`<span class="nm">${m%12===0?noteName(m):NAMES[m%12]}</span>`; kb.appendChild(k);
+    if([0,2,5,7,9].includes(m%12) && m+1<=base+12*nOct){
+      const b=document.createElement('div'); b.className='key black'; b.dataset.midi=m+1;
+      b.style.left=`calc(${(i+1)*W}% - ${W*0.31}%)`; b.style.width=`${W*0.62}%`; kb.appendChild(b); }
+  });
+  document.getElementById('octLbl').textContent=`${noteName(base)} – ${noteName(base+12*nOct)}`;
+  paintKeys();
+}
+function paintKeys(){ kb.querySelectorAll('.key').forEach(k=>{ const m=+k.dataset.midi; k.classList.toggle('down', held.has(m)||hostKeys.has(m)); }); }
+const ptrs=new Map();
+const keyAt=(x,y)=>{ const el=document.elementFromPoint(x,y); const k=el&&el.closest('.key'); return k?+k.dataset.midi:null; };
+kb.addEventListener('pointerdown',e=>{ e.preventDefault(); const m=keyAt(e.clientX,e.clientY); if(m==null) return;
+  if(hold){ held.has(m)?noteOff(m):noteOn(m); return; } ptrs.set(e.pointerId,m); noteOn(m); });
+kb.addEventListener('pointermove',e=>{ if(hold||!ptrs.has(e.pointerId)) return; const m=keyAt(e.clientX,e.clientY), old=ptrs.get(e.pointerId);
+  if(m!=null && m!==old){ noteOff(old); noteOn(m); ptrs.set(e.pointerId,m); } });
+const up=e=>{ if(ptrs.has(e.pointerId)){ noteOff(ptrs.get(e.pointerId)); ptrs.delete(e.pointerId); } };
+window.addEventListener('pointerup',up); window.addEventListener('pointercancel',up);
+function shiftOct(d){ const nb=base+12*d; if(nb<24||nb>84) return; [...held].forEach(noteOff); base=nb; buildKeyboard(); }
+document.getElementById('octDown').onclick=()=>shiftOct(-1);
+document.getElementById('octUp').onclick=()=>shiftOct(1);
+const holdBtn=document.getElementById('holdBtn');
+holdBtn.onclick=()=>{ hold=!hold; holdBtn.classList.toggle('on',hold); holdBtn.setAttribute('aria-pressed',hold); if(!hold) [...held].forEach(noteOff); };
+let lastW=window.innerWidth;
+window.addEventListener('resize',()=>{ if((window.innerWidth<640)!==(lastW<640)) buildKeyboard(); lastW=window.innerWidth; });
+['contextmenu','selectstart'].forEach(ev=>document.addEventListener(ev,e=>{ if(e.target.closest&&e.target.closest('.keyboard,.kbwrap')) e.preventDefault(); }));
+
+/* ---------- dessins ---------- */
+function fit(cv){ const r=cv.getBoundingClientRect(), dpr=window.devicePixelRatio||1, w=Math.round(r.width*dpr), h=Math.round(r.height*dpr);
+  if(cv.width!==w||cv.height!==h){ cv.width=w; cv.height=h; } const g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); return {g,w:r.width,h:r.height}; }
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const COL={osc:css('--osc'),filt:css('--filt'),amp:css('--amp'),out:css('--out'),line:css('--line'),muted:css('--muted')};
+const alpha=(hex,a)=>{ const n=parseInt(hex.slice(1),16); return `rgba(${n>>16},${(n>>8)&255},${n&255},${a})`; };
+
+// état envoyé par le plugin, environ 30 fois par seconde
+const V = { wave:[], spec:[], note:-1, age:0, released:false, rel:0, envA:0, envF:0, active:false };
+
+function drawEnv(cv, kind){
+  const env = kind==='amp' ? {a:P.aA,d:P.aD,s:P.aS,r:P.aR} : {a:P.fA,d:P.fD,s:P.fS,r:P.fR,amount:P.envAmount};
+  const color = kind==='amp' ? COL.amp : COL.filt;
+  const {g,w,h}=fit(cv); g.clearRect(0,0,w,h);
+  const padL=8,padR=8,top=14,bot=h-20, W=w-padL-padR, neg = kind==='filt' && env.amount<0;
+  const Y=l=> neg ? top+l*(bot-top) : bot-l*(bot-top);
+  const sa=Math.sqrt(env.a)+0.05, sd=Math.sqrt(env.d)+0.05, sr=Math.sqrt(env.r)+0.05, tot=sa+sd+sr;
+  const avail=W*0.78, xA=avail*sa/tot, xD=avail*sd/tot, xS=W*0.22, xR=avail*sr/tot;
+  const x0=padL, x1=x0+xA, x2=x1+xD, x3=x2+xS, x4=x3+xR;
+  g.strokeStyle=COL.line; g.lineWidth=1; g.setLineDash([3,4]);
+  [x1,x2,x3].forEach(x=>{g.beginPath();g.moveTo(x,top-6);g.lineTo(x,bot);g.stroke();});
+  g.beginPath(); g.moveTo(x0,Y(0)); g.lineTo(w-padR,Y(0)); g.stroke(); g.setLineDash([]);
+  const amt = kind==='filt' ? Math.min(1,Math.abs(env.amount)/3+0.15) : 1;
+  const shape=()=>{ g.beginPath(); g.moveTo(x0,Y(0)); g.lineTo(x1,Y(1)); g.lineTo(x2,Y(env.s)); g.lineTo(x3,Y(env.s)); g.lineTo(x4,Y(0)); };
+  shape(); g.lineTo(x0,Y(0)); g.fillStyle=alpha(color,0.18*amt+0.04); g.fill();
+  shape(); g.strokeStyle=alpha(color,0.4+0.6*amt); g.lineWidth=2.2; g.stroke();
+  g.fillStyle=COL.muted; g.font='600 11px Consolas, monospace'; g.textAlign='center';
+  [['A',(x0+x1)/2],['D',(x1+x2)/2],['S',(x2+x3)/2],['R',(x3+x4)/2]].forEach(([t,x])=>g.fillText(t,x,h-5));
+  g.textAlign='left'; g.font='10px Consolas, monospace';
+  g.fillText(kind==='amp'?'volume':(neg?'coupure ↓':'coupure ↑'), padL+2, top-3);
+  g.textAlign='right'; g.fillText('lâcher', x3-2, top-3);
+  // point animé : position dans le temps, hauteur = vraie valeur de l'enveloppe dans le plugin
+  if(!V.active) return;
+  const l = kind==='amp' ? V.envA : V.envF; let x;
+  if(!V.released){ const dt=V.age; x = dt<env.a ? x0+xA*dt/env.a : dt<env.a+env.d ? x1+xD*(dt-env.a)/env.d : x2+xS*Math.min(1,(dt-env.a-env.d)/1.5); }
+  else x = x3+xR*Math.min(1,V.rel/env.r);
+  g.fillStyle='#fff'; g.beginPath(); g.arc(x,Y(l),5,0,7); g.fill(); g.strokeStyle=color; g.lineWidth=2; g.stroke();
+}
+
+// courbe du filtre (même type de filtre 12 dB/octave que dans le plugin)
+function filterMag(type,fc,Q,f,fs){
+  const w0=2*Math.PI*Math.min(fc,fs*0.49)/fs, al=Math.sin(w0)/(2*Q), c=Math.cos(w0); let b0,b1,b2;
+  if(type===0){ b0=(1-c)/2; b1=1-c; b2=(1-c)/2; } else if(type===1){ b0=(1+c)/2; b1=-(1+c); b2=(1+c)/2; } else { b0=al; b1=0; b2=-al; }
+  const a0=1+al, a1=-2*c, a2=1-al, w=2*Math.PI*f/fs;
+  const re=(x0,x1,x2)=>x0+x1*Math.cos(w)+x2*Math.cos(2*w), im=(x1,x2)=>-(x1*Math.sin(w)+x2*Math.sin(2*w));
+  const nr=re(b0,b1,b2), ni=im(b1,b2), dr=re(a0,a1,a2), di=im(a1,a2);
+  return Math.sqrt((nr*nr+ni*ni)/(dr*dr+di*di));
+}
+function drawFilter(cv){
+  const {g,w,h}=fit(cv); g.clearRect(0,0,w,h);
+  const fx=f=>Math.log(f/20)/Math.log(1000)*w, dbMin=-42, dbMax=30, Y=db=>h-((Math.max(dbMin,Math.min(dbMax,db))-dbMin)/(dbMax-dbMin))*h;
+  g.strokeStyle=COL.line; g.lineWidth=1; g.fillStyle=COL.muted; g.font='10px Consolas, monospace';
+  [100,1000,10000].forEach(f=>{ const x=fx(f); g.beginPath(); g.moveTo(x,0); g.lineTo(x,h); g.stroke(); g.fillText(f>=1000?f/1000+'k':f,x+3,h-4); });
+  g.setLineDash([3,4]); g.beginPath(); g.moveTo(0,Y(0)); g.lineTo(w,Y(0)); g.stroke(); g.setLineDash([]);
+  const lvl = V.active ? V.envF : 0;
+  const fc=Math.min(20000,Math.max(20,P.cutoff*Math.pow(2,P.envAmount*lvl)));
+  if(Math.abs(P.envAmount)>0.05){ const fm=Math.min(20000,Math.max(20,P.cutoff*Math.pow(2,P.envAmount)));
+    g.strokeStyle=alpha(COL.filt,0.35); g.setLineDash([2,5]); g.beginPath(); g.moveTo(fx(fm),0); g.lineTo(fx(fm),h); g.stroke(); g.setLineDash([]); }
+  const Q = P.filtType===2 ? 0.5*Math.pow(60,P.res) : 0.7071*Math.pow(10,P.res*24/20);
+  g.beginPath(); for(let i=0;i<240;i++){ const f=20*Math.pow(1000,i/239), x=fx(f), y=Y(20*Math.log10(filterMag(P.filtType,fc,Q,f,48000)+1e-9)); i?g.lineTo(x,y):g.moveTo(x,y); }
+  g.strokeStyle=COL.filt; g.lineWidth=2.2; g.stroke(); g.lineTo(w,h); g.lineTo(0,h); g.closePath(); g.fillStyle=alpha(COL.filt,0.13); g.fill();
+  g.strokeStyle='#fff'; g.lineWidth=1.2; g.beginPath(); g.moveTo(fx(fc),0); g.lineTo(fx(fc),h); g.stroke();
+  g.fillStyle=COL.filt; g.textAlign=fx(fc)>w-70?'right':'left'; g.fillText(FMT.hz(fc), fx(fc)+(g.textAlign==='right'?-4:4), 12); g.textAlign='left';
+  g.fillStyle=COL.muted; g.fillText('graves', 4, 12); g.textAlign='right'; g.fillText('aigus', w-4, h-16); g.textAlign='left';
+}
+let scopeGain=1;
+function drawScope(cv){
+  const {g,w,h}=fit(cv); g.clearRect(0,0,w,h); g.strokeStyle=COL.line; g.lineWidth=1;
+  if(P.uiScope==='wave'){
+    g.beginPath(); g.moveTo(0,h/2); g.lineTo(w,h/2); g.stroke();
+    const d=V.wave, N=d.length;
+    if(N>1){ let pk=0; for(const s of d) pk=Math.max(pk,Math.abs(s));
+      const target = pk>0.002 ? 0.85/pk : scopeGain; scopeGain += (target-scopeGain)*0.15;
+      g.beginPath(); for(let i=0;i<N;i++){ const x=i/(N-1)*w, y=h/2-d[i]*scopeGain*h/2; i?g.lineTo(x,y):g.moveTo(x,y); }
+      g.strokeStyle=COL.out; g.lineWidth=2; g.stroke(); }
+    g.fillStyle=COL.muted; g.font='10px Consolas, monospace'; g.fillText('temps →  (zoom auto)',6,h-6);
+  } else {
+    const fx=f=>Math.log(f/20)/Math.log(1000)*w; g.fillStyle=COL.muted; g.font='10px Consolas, monospace';
+    [50,100,200,500,1000,2000,5000,10000].forEach(f=>{ const x=fx(f); g.beginPath(); g.moveTo(x,0); g.lineTo(x,h); g.stroke(); g.fillText(f>=1000?f/1000+'k':f,x+3,h-4); });
+    const d=V.spec, N=d.length;
+    if(N>1){ g.beginPath(); g.moveTo(0,h); for(let i=0;i<N;i++) g.lineTo(i/(N-1)*w, h-d[i]*h);
+      g.lineTo(w,h); g.closePath(); g.fillStyle=alpha(COL.out,0.25); g.fill(); g.strokeStyle=COL.out; g.lineWidth=1.5; g.stroke(); }
+    g.fillStyle=COL.muted; g.fillText('fréquences (Hz) →',6,12);
+  }
+}
+const readout=document.getElementById('readout');
+let lastNote=-2;
+function showNote(){
+  if(V.note===lastNote) return; lastNote=V.note;
+  if(V.note<0){ readout.textContent='Joue une note…'; return; }
+  const f=440*Math.pow(2,(V.note-69)/12+P.detune/1200);
+  readout.innerHTML=`Note : <b>${noteName(V.note)}</b> · ${dec(f,1)} Hz`;
+}
+const cvScope=document.getElementById('cv-scope'), cvF=document.getElementById('cv-filt'), cvFE=document.getElementById('cv-fenv'), cvAE=document.getElementById('cv-aenv');
+function loop(){ drawScope(cvScope); drawFilter(cvF); drawEnv(cvFE,'filt'); drawEnv(cvAE,'amp'); showNote(); requestAnimationFrame(loop); }
+
+/* ---------- échanges avec le plugin ---------- */
+const parseList=(s,k)=> s ? s.split(',').map(x=>+x/k) : [];
+on('state', st => { Object.assign(P, st.params||{}); if(st.presets) buildPresets(st.presets, st.program); refreshAll(); });
+on('params', ps => { Object.assign(P, ps); refreshAll(); });
+on('viz', v => {
+  V.wave=parseList(v.w,1000); V.spec=parseList(v.s,1000);
+  V.active=!!v.a; V.note=v.n; V.age=v.t||0; V.released=!!v.r; V.rel=v.rt||0; V.envA=v.ea||0; V.envF=v.ef||0;
+  hostKeys=new Set(parseList(v.k,1)); paintKeys();
+});
+
+buildKeyboard(); refreshAll(); requestAnimationFrame(loop);
+if(!B){ document.getElementById('nobackend').hidden=false; }
+emit('ready',{});
+</script>
+</body>
+</html>

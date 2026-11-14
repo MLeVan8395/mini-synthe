@@ -19,8 +19,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Télécharger WebView2 (le moteur d'Edge qui affiche l'interface)
+        shell: pwsh
+        run: nuget install Microsoft.Web.WebView2 -Version 1.0.3485.44 -OutputDirectory "$env:RUNNER_TEMP\wv2" -NonInteractive
+
       - name: Préparer la compilation
-        run: cmake -S plugin -B build -A x64
+        shell: pwsh
+        run: |
+          $wv2 = ($env:RUNNER_TEMP -replace '\\','/') + '/wv2'
+          cmake -S plugin -B build -A x64 "-DJUCE_WEBVIEW2_PACKAGE_LOCATION=$wv2"
 
       - name: Compiler
         run: cmake --build build --config Release --parallel

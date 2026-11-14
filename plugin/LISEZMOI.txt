@@ -1,4 +1,4 @@
-MINI-SYNTHÉ PÉDAGOGIQUE — PLUGIN VST3 POUR WINDOWS (version 0.1)
+MINI-SYNTHÉ PÉDAGOGIQUE — PLUGIN VST3 POUR WINDOWS (version 0.2)
 © 2026 Mickael Le Van – tous droits réservés
 
 Contenu
@@ -25,9 +25,11 @@ C:\Program Files\Common Files\VST3\
 
 Utiliser
 --------
-- Tous les réglages s'affichent en curseurs, rangés comme sur le site : 1 Oscillateur et bruit, 2 Filtre, 3 Ampli.
+- La fenêtre du plugin reprend l'interface du site : parcours du son, écran (forme d'onde et spectre du son
+  produit par le plugin), courbes du filtre et des enveloppes, explications « Comprendre », clavier à l'écran.
+  Elle utilise WebView2, le moteur d'Edge, déjà présent sur Windows 10 et 11.
 - Les sons de départ (Son pur, Orgue, Basse synthé, Son pincé, Cuivre, Nappe, Charleston, Vent) se choisissent
-  dans la liste des presets / programmes du logiciel.
+  dans la fenêtre du plugin ou dans la liste des presets / programmes du logiciel.
 - Chaque réglage peut être automatisé sur une piste et relié à un bouton de clavier MIDI (fonctions du logiciel).
 - Molette de pitch : ± 2 demi-tons. Pédale de sustain : oui.
 

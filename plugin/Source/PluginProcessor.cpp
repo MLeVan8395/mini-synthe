@@ -1,6 +1,7 @@
 // Mini-synthé pédagogique — plugin VST3
 // © 2026 Mickael Le Van – tous droits réservés
 #include "PluginProcessor.h"
+#include "PluginEditor.h"
 
 namespace
 {
@@ -127,6 +128,7 @@ void MiniSynthProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
 {
     juce::ScopedNoDenormals noDenormals;
     buffer.clear();
+    keyboardState.processNextMidiBuffer (midi, 0, buffer.getNumSamples(), true);   // notes du clavier à l'écran
     synth.renderNextBlock (buffer, midi, 0, buffer.getNumSamples());
 
     // volume général, puis un adoucisseur qui évite la saturation brutale quand on joue beaucoup de notes
@@ -142,6 +144,25 @@ void MiniSynthProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
             buffer.setSample (ch, i, x);
         }
     }
+
+    // on garde les derniers instants du son pour l'écran (forme d'onde, spectre)
+    int w = scopeWrite.load();
+    for (int i = 0; i < buffer.getNumSamples(); ++i)
+    {
+        scopeBuffer[(size_t) w] = buffer.getSample (0, i);
+        w = (w + 1) & (scopeSize - 1);
+    }
+    scopeWrite.store (w);
+}
+
+MiniVoice* MiniSynthProcessor::latestVoice() const
+{
+    MiniVoice* best = nullptr;
+    for (int i = 0; i < synth.getNumVoices(); ++i)
+        if (auto* v = dynamic_cast<MiniVoice*> (synth.getVoice (i)))
+            if (best == nullptr || v->vizSerial.load() > best->vizSerial.load())
+                best = v;
+    return best;
 }
 
 int MiniSynthProcessor::getNumPrograms() { return (int) presets().size(); }
@@ -163,8 +184,11 @@ void MiniSynthProcessor::setCurrentProgram (int index)
 
 juce::AudioProcessorEditor* MiniSynthProcessor::createEditor()
 {
-    // Première version : la fenêtre standard de JUCE, qui affiche tous les réglages en curseurs.
-    return new juce::GenericAudioProcessorEditor (*this);
+   #if JUCE_WEB_BROWSER
+    return new MiniSynthEditor (*this);          // l'interface pédagogique (page web intégrée)
+   #else
+    return new juce::GenericAudioProcessorEditor (*this);   // secours : simple liste de curseurs
+   #endif
 }
 
 void MiniSynthProcessor::getStateInformation (juce::MemoryBlock& destData)
