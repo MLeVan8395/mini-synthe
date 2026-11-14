@@ -14,6 +14,7 @@ endif()
 
 juce_add_plugin(MiniSynthe
     COMPANY_NAME "Mickael Le Van"
+    ICON_BIG "${CMAKE_CURRENT_SOURCE_DIR}/../icones/icone-512.png"
     PRODUCT_NAME "Mini-synthe"
     PLUGIN_MANUFACTURER_CODE Mlvn
     PLUGIN_CODE Msyn

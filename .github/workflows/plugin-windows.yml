@@ -36,6 +36,20 @@ jobs:
           Copy-Item "plugin/LICENCES-TIERS.txt" $out
           Compress-Archive -Path "$out/*" -DestinationPath "Mini-synthe-Windows.zip" -Force
 
+      - name: Fabriquer l'installeur (un seul fichier .exe)
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; }
+          & $iscc "plugin\installeur.iss"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Mettre l'installeur à disposition (onglet Actions)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Installer-Mini-synthe
+          path: installeur/Installer-Mini-synthe.exe
+
       - name: Mettre le zip à disposition (onglet Actions)
         uses: actions/upload-artifact@v4
         with:
@@ -46,5 +60,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/vst-v')
         uses: softprops/action-gh-release@v2
         with:
-          files: Mini-synthe-Windows.zip
+          files: |
+            installeur/Installer-Mini-synthe.exe
+            Mini-synthe-Windows.zip
           name: Mini-synthé VST3 ${{ github.ref_name }}

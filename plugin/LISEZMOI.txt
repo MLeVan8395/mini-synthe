@@ -6,15 +6,22 @@ Contenu
 - Mini-synthe.vst3 : le plugin, pour Cubase, Reason (12.5 ou plus récent) et tout logiciel qui accepte le VST3.
 - Mini-synthe.exe  : la même chose en logiciel autonome, sans logiciel de musique.
 
-Installer le plugin
--------------------
-1. Copie le dossier « Mini-synthe.vst3 » (tout le dossier) dans :
-      C:\Program Files\Common Files\VST3\
-   Windows demande une confirmation d'administrateur : accepte.
-2. Cubase : il le trouve au démarrage. Sinon : menu Studio → Gestionnaire de plug-ins VST, et relance l'analyse.
-   Il apparaît dans les instruments, chez le fabricant « Mickael Le Van ».
-3. Reason (menus en anglais) : il vérifie les nouveaux plugins au démarrage. Sinon : Edit → Preferences → onglet Plugins.
-   Il apparaît dans le navigateur, rubrique Instruments → VST.
+Installer
+---------
+Le plus simple : double-clique sur « Installer-Mini-synthe.exe » et laisse-toi guider.
+- Windows peut afficher « Windows a protégé votre ordinateur » (le fichier n'est pas signé) :
+  clique sur « Informations complémentaires » puis « Exécuter quand même ».
+- L'installeur met le plugin dans C:\Program Files\Common Files\VST3\ (l'endroit où Cubase et Reason le cherchent)
+  et ajoute le logiciel autonome dans le menu Démarrer. Il se désinstalle comme tout logiciel (Paramètres → Applications).
+
+Ensuite :
+- Cubase : il le trouve au démarrage. Sinon : menu Studio → Gestionnaire de plug-ins VST, et relance l'analyse.
+  Il apparaît dans les instruments, chez le fabricant « Mickael Le Van ».
+- Reason (menus en anglais) : il vérifie les nouveaux plugins au démarrage. Sinon : Edit → Preferences → onglet Plugins.
+  Il apparaît dans le navigateur, rubrique Instruments → VST.
+
+Sans installeur (à la main) : copie le dossier « Mini-synthe.vst3 » (tout le dossier) dans
+C:\Program Files\Common Files\VST3\
 
 Utiliser
 --------
