@@ -1,0 +1,50 @@
+# Fabrique le plugin VST3 (et la version autonome) pour Windows.
+# Se lance tout seul quand le dossier plugin/ change, ou à la main : onglet Actions → « Plugin VST3 Windows » → Run workflow.
+# Pour publier une version téléchargeable par tous : créer un tag qui commence par vst-v (ex. vst-v0.1.0).
+name: Plugin VST3 Windows
+
+on:
+  push:
+    branches: [main]
+    paths: ['plugin/**', '.github/workflows/plugin-windows.yml']
+    tags: ['vst-v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Préparer la compilation
+        run: cmake -S plugin -B build -A x64
+
+      - name: Compiler
+        run: cmake --build build --config Release --parallel
+
+      - name: Rassembler les fichiers
+        shell: pwsh
+        run: |
+          $out = "Mini-synthe-Windows"
+          New-Item -ItemType Directory -Force $out | Out-Null
+          Copy-Item -Recurse "build/MiniSynthe_artefacts/Release/VST3/Mini-synthe.vst3" $out
+          Copy-Item "build/MiniSynthe_artefacts/Release/Standalone/Mini-synthe.exe" $out
+          Copy-Item "plugin/LISEZMOI.txt" $out
+          Copy-Item "plugin/LICENCES-TIERS.txt" $out
+          Compress-Archive -Path "$out/*" -DestinationPath "Mini-synthe-Windows.zip" -Force
+
+      - name: Mettre le zip à disposition (onglet Actions)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mini-synthe-Windows
+          path: Mini-synthe-Windows/
+
+      - name: Publier une version (seulement pour un tag vst-v…)
+        if: startsWith(github.ref, 'refs/tags/vst-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Mini-synthe-Windows.zip
+          name: Mini-synthé VST3 ${{ github.ref_name }}
